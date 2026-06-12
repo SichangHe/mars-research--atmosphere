@@ -257,117 +257,6 @@ pub proof fn no_child_imply_no_subtree(
     ensures
         container_perms[c_ptr].value().subtree_set@ =~= Set::empty(),
 {
-    assert(forall|s_ptr: ContainerPtr|
-        #![auto]
-        container_perms[c_ptr].value().subtree_set@.contains(s_ptr)
-            ==> container_perms[s_ptr].value().uppertree_seq@.contains(c_ptr));
-    assert(forall|s_ptr: ContainerPtr|
-        #![auto]
-        container_perms[c_ptr].value().subtree_set@.contains(s_ptr)
-            ==> container_perms[s_ptr].value().uppertree_seq@.subrange(
-            0,
-            container_perms[c_ptr].value().depth as int,
-        ) == container_perms[c_ptr].value().uppertree_seq@);
-    assert(forall|s_ptr: ContainerPtr|
-        #![auto]
-        container_perms[c_ptr].value().subtree_set@.contains(s_ptr) ==> s_ptr != root_container);
-    assert(forall|s_ptr: ContainerPtr|
-        #![auto]
-        container_perms[c_ptr].value().subtree_set@.contains(s_ptr)
-            ==> container_perms[c_ptr].value().children@.contains(s_ptr) == false);
-    assert(forall|s_ptr: ContainerPtr|
-        #![auto]
-        container_perms[c_ptr].value().subtree_set@.contains(s_ptr)
-            ==> container_perms[s_ptr].value().parent.unwrap() != c_ptr);
-    assert(forall|s_ptr: ContainerPtr|
-        #![auto]
-        container_perms[c_ptr].value().subtree_set@.contains(s_ptr)
-            ==> container_perms[s_ptr].value().uppertree_seq@[container_perms[s_ptr].value().depth
-            - 1] != c_ptr);
-    assert(forall|s_ptr: ContainerPtr|
-        #![auto]
-        container_perms[c_ptr].value().subtree_set@.contains(s_ptr)
-            ==> container_perms[s_ptr].value().uppertree_seq@[container_perms[c_ptr].value().depth as int]
-            == c_ptr);
-    assert(forall|s_ptr: ContainerPtr|
-        #![auto]
-        container_perms[c_ptr].value().subtree_set@.contains(s_ptr)
-            ==> container_perms[s_ptr].value().uppertree_seq@.len()
-            > container_perms[c_ptr].value().depth);
-    assert(forall|s_ptr: ContainerPtr|
-        #![auto]
-        container_perms[c_ptr].value().subtree_set@.contains(s_ptr)
-            ==> container_perms[s_ptr].value().uppertree_seq@.len()
-            != container_perms[c_ptr].value().depth + 1);
-    assert(forall|s_ptr: ContainerPtr|
-        #![auto]
-        container_perms[c_ptr].value().subtree_set@.contains(s_ptr)
-            ==> container_perms[s_ptr].value().uppertree_seq@.contains(
-            container_perms[s_ptr].value().uppertree_seq@[container_perms[c_ptr].value().depth + 1],
-        ));
-    assert(forall|s_ptr: ContainerPtr|
-        #![auto]
-        container_perms[c_ptr].value().subtree_set@.contains(s_ptr)
-            ==> container_perms.dom().contains(s_ptr));
-    assert(forall|s_ptr: ContainerPtr|
-        #![auto]
-        container_perms[c_ptr].value().subtree_set@.contains(s_ptr)
-            ==> container_perms.dom().contains(
-            container_perms[s_ptr].value().uppertree_seq@[container_perms[c_ptr].value().depth + 1],
-        ));
-    assert(forall|s_ptr: ContainerPtr|
-        #![auto]
-        container_perms[c_ptr].value().subtree_set@.contains(s_ptr)
-            ==> container_perms[s_ptr].value().uppertree_seq@.contains(
-            container_perms[s_ptr].value().uppertree_seq@[container_perms[c_ptr].value().depth + 1],
-        ));
-    assert(forall|s_ptr: ContainerPtr|
-        #![auto]
-        container_perms[c_ptr].value().subtree_set@.contains(s_ptr)
-            ==> container_perms[s_ptr].value().uppertree_seq@.subrange(
-            0,
-            container_perms[container_perms[s_ptr].value().uppertree_seq@[container_perms[c_ptr].value().depth
-                + 1]].value().depth as int,
-        )
-            =~= container_perms[container_perms[s_ptr].value().uppertree_seq@[container_perms[c_ptr].value().depth
-            + 1]].value().uppertree_seq@);
-    assert(forall|s_ptr: ContainerPtr|
-        #![auto]
-        container_perms[c_ptr].value().subtree_set@.contains(s_ptr)
-            ==> container_perms[s_ptr].value().uppertree_seq@.no_duplicates());
-    assert(forall|s_ptr: ContainerPtr|
-        #![auto]
-        container_perms[c_ptr].value().subtree_set@.contains(s_ptr)
-            ==> container_perms[s_ptr].value().uppertree_seq@.index_of(
-            container_perms[s_ptr].value().uppertree_seq@[container_perms[c_ptr].value().depth + 1],
-        ) == container_perms[c_ptr].value().depth + 1);
-    assert(forall|s_ptr: ContainerPtr|
-        #![auto]
-        container_perms[c_ptr].value().subtree_set@.contains(s_ptr)
-            ==> container_perms[container_perms[s_ptr].value().uppertree_seq@[container_perms[c_ptr].value().depth
-            + 1]].value().depth == container_perms[c_ptr].value().depth + 1);
-    assert(forall|s_ptr: ContainerPtr|
-        #![auto]
-        container_perms[c_ptr].value().subtree_set@.contains(s_ptr)
-            ==> container_perms[container_perms[s_ptr].value().uppertree_seq@[container_perms[c_ptr].value().depth
-            + 1]].value().uppertree_seq@[container_perms[c_ptr].value().depth as int] == c_ptr);
-    assert(forall|s_ptr: ContainerPtr|
-        #![auto]
-        container_perms[c_ptr].value().subtree_set@.contains(s_ptr)
-            ==> container_perms[container_perms[s_ptr].value().uppertree_seq@[container_perms[c_ptr].value().depth
-            + 1]].value().uppertree_seq@[container_perms[container_perms[s_ptr].value().uppertree_seq@[container_perms[c_ptr].value().depth
-            + 1]].value().depth - 1] == c_ptr);
-    assert(forall|s_ptr: ContainerPtr|
-        #![auto]
-        container_perms[c_ptr].value().subtree_set@.contains(s_ptr)
-            ==> container_perms[container_perms[s_ptr].value().uppertree_seq@[container_perms[c_ptr].value().depth
-            + 1]].value().parent.unwrap() == c_ptr);
-    assert(forall|s_ptr: ContainerPtr|
-        #![auto]
-        container_perms[c_ptr].value().subtree_set@.contains(s_ptr)
-            ==> container_perms[c_ptr].value().children@.contains(
-            container_perms[s_ptr].value().uppertree_seq@[container_perms[c_ptr].value().depth + 1],
-        ));
 }
 
 pub proof fn in_child_imply_in_subtree(
@@ -410,22 +299,7 @@ pub proof fn in_child_impy_in_subtree(
     ensures
         container_perms[c_ptr].value().subtree_set@.contains(s_ptr),
 {
-    assert(container_perms[child_ptr].value().parent.unwrap() == c_ptr);
-    assert(container_perms[child_ptr].value().depth == container_perms[c_ptr].value().depth + 1);
-    assert(container_perms[child_ptr].value().uppertree_seq@.len()
-        == container_perms[child_ptr].value().depth);
-    assert(container_perms[c_ptr].value().uppertree_seq@.len()
-        == container_perms[c_ptr].value().depth);
-    assert(container_perms[child_ptr].value().uppertree_seq@[container_perms[child_ptr].value().depth
-        - 1] == c_ptr);
-    assert(container_perms[s_ptr].value().uppertree_seq@.contains(child_ptr));
-    assert(container_perms[s_ptr].value().uppertree_seq@.subrange(
-        0,
-        container_perms[child_ptr].value().depth as int,
-    ) == container_perms[child_ptr].value().uppertree_seq@);
-    assert(container_perms[s_ptr].value().uppertree_seq@[container_perms[c_ptr].value().depth as int]
-        == c_ptr);
-    assert(container_perms[s_ptr].value().uppertree_seq@.contains(c_ptr));
+
 }
 
 pub proof fn in_subtree_impy_in_subsubtree(
@@ -444,12 +318,6 @@ pub proof fn in_subtree_impy_in_subsubtree(
     ensures
         container_perms[c_ptr].value().subtree_set@.contains(s_ptr),
 {
-    assert(container_perms.dom().contains(s_ptr));
-    assert(container_perms[child_ptr].value().uppertree_seq@.contains(c_ptr));
-    assert(container_perms[s_ptr].value().uppertree_seq@.contains(child_ptr));
-    assert(container_perms[s_ptr].value().uppertree_seq@.subrange(0, container_perms[child_ptr].value().depth as int) 
-        == container_perms[child_ptr].value().uppertree_seq@);
-    assert(container_perms[s_ptr].value().uppertree_seq@.contains(c_ptr));
 }
 
 pub proof fn in_subtree_imply_exist_in_child(
@@ -470,85 +338,6 @@ pub proof fn in_subtree_imply_exist_in_child(
             container_perms[c_ptr].value().children@.contains(child_ptr)
                 && container_perms[child_ptr].value().subtree_set@.contains(s_ptr)),
 {
-    assert(container_perms[s_ptr].value().uppertree_seq@.contains(c_ptr));
-    assert(container_perms[c_ptr].value().children@.contains(s_ptr) == false
-        ==> container_perms[s_ptr].value().uppertree_seq@.subrange(
-        0,
-        container_perms[c_ptr].value().depth as int,
-    ) == container_perms[c_ptr].value().uppertree_seq@);
-    assert(container_perms[c_ptr].value().children@.contains(s_ptr) == false ==> s_ptr
-        != root_container);
-    assert(container_perms[c_ptr].value().children@.contains(s_ptr) == false
-        ==> container_perms[s_ptr].value().parent.unwrap() != c_ptr);
-    assert(container_perms[c_ptr].value().children@.contains(s_ptr) == false
-        ==> container_perms[s_ptr].value().uppertree_seq@.len()
-        > container_perms[c_ptr].value().depth);
-    assert(container_perms[c_ptr].value().children@.contains(s_ptr) == false
-        ==> container_perms[s_ptr].value().uppertree_seq@[container_perms[s_ptr].value().depth - 1]
-        != c_ptr);
-    assert(container_perms[c_ptr].value().children@.contains(s_ptr) == false
-        ==> container_perms[s_ptr].value().uppertree_seq@[container_perms[c_ptr].value().depth as int]
-        == c_ptr);
-    assert(container_perms[c_ptr].value().children@.contains(s_ptr) == false
-        ==> container_perms[s_ptr].value().uppertree_seq@.len()
-        > container_perms[c_ptr].value().depth);
-    assert(container_perms[c_ptr].value().children@.contains(s_ptr) == false
-        ==> container_perms[s_ptr].value().uppertree_seq@.len()
-        != container_perms[c_ptr].value().depth + 1);
-    assert(container_perms[c_ptr].value().children@.contains(s_ptr) == false
-        ==> container_perms[s_ptr].value().uppertree_seq@.len()
-        > container_perms[c_ptr].value().depth + 1);
-    assert(container_perms[c_ptr].value().children@.contains(s_ptr) == false
-        ==> container_perms[s_ptr].value().uppertree_seq@.contains(
-        container_perms[s_ptr].value().uppertree_seq@[container_perms[c_ptr].value().depth + 1],
-    ));
-    assert(container_perms[c_ptr].value().children@.contains(s_ptr) == false
-        ==> container_perms.dom().contains(
-        container_perms[s_ptr].value().uppertree_seq@[container_perms[c_ptr].value().depth + 1],
-    ));
-    assert(container_perms[c_ptr].value().children@.contains(s_ptr) == false
-        ==> container_perms[s_ptr].value().uppertree_seq@.subrange(
-        0,
-        container_perms[container_perms[s_ptr].value().uppertree_seq@[container_perms[c_ptr].value().depth
-            + 1]].value().depth as int,
-    )
-        =~= container_perms[container_perms[s_ptr].value().uppertree_seq@[container_perms[c_ptr].value().depth
-        + 1]].value().uppertree_seq@);
-    assert(container_perms[c_ptr].value().children@.contains(s_ptr) == false
-        ==> container_perms[s_ptr].value().uppertree_seq@.no_duplicates());
-    assert(container_perms[c_ptr].value().children@.contains(s_ptr) == false
-        ==> container_perms[s_ptr].value().uppertree_seq@.index_of(
-        container_perms[s_ptr].value().uppertree_seq@[container_perms[c_ptr].value().depth + 1],
-    ) == container_perms[c_ptr].value().depth + 1);
-    assert(container_perms[c_ptr].value().children@.contains(s_ptr) == false
-        ==> container_perms[container_perms[s_ptr].value().uppertree_seq@[container_perms[c_ptr].value().depth
-        + 1]].value().depth == container_perms[c_ptr].value().depth + 1);
-    assert(container_perms[c_ptr].value().children@.contains(s_ptr) == false
-        ==> container_perms[container_perms[s_ptr].value().uppertree_seq@[container_perms[c_ptr].value().depth
-        + 1]].value().uppertree_seq@.len() == container_perms[c_ptr].value().depth + 1);
-    assert(container_perms[c_ptr].value().children@.contains(s_ptr) == false
-        ==> container_perms[container_perms[s_ptr].value().uppertree_seq@[container_perms[c_ptr].value().depth
-        + 1]].value().uppertree_seq@[container_perms[c_ptr].value().depth as int] == c_ptr);
-    assert(container_perms[c_ptr].value().children@.contains(s_ptr) == false
-        ==> container_perms[container_perms[s_ptr].value().uppertree_seq@[container_perms[c_ptr].value().depth
-        + 1]].value().uppertree_seq@[container_perms[container_perms[s_ptr].value().uppertree_seq@[container_perms[c_ptr].value().depth
-        + 1]].value().depth - 1] == c_ptr);
-    assert(container_perms[c_ptr].value().children@.contains(s_ptr) == false
-        ==> container_perms[container_perms[s_ptr].value().uppertree_seq@[container_perms[c_ptr].value().depth
-        + 1]].value().parent.unwrap() == c_ptr);
-    assert(container_perms[c_ptr].value().children@.contains(s_ptr) == false
-        ==> container_perms[c_ptr].value().children@.contains(
-        container_perms[s_ptr].value().uppertree_seq@[container_perms[c_ptr].value().depth + 1],
-    ));
-    assert(container_perms[c_ptr].value().children@.contains(s_ptr) == false
-        ==> container_perms[container_perms[s_ptr].value().uppertree_seq@[container_perms[c_ptr].value().depth
-        + 1]].value().subtree_set@.contains(s_ptr));
-    assert(container_perms[c_ptr].value().children@.contains(s_ptr) == false ==> (exists|
-        child_ptr: ContainerPtr,
-    |
-        #![auto]
-        container_perms[c_ptr].value().children@.contains(child_ptr)
-            && container_perms[child_ptr].value().subtree_set@.contains(s_ptr)));
 }
 
 pub proof fn not_in_dom_imply_not_in_any_children_set(
@@ -974,55 +763,6 @@ pub proof fn new_container_preserve_tree_inv(
 
         container_tree_wf(root_container, new_container_perms),
 {
-    new_container_preserve_tree_inv_1(
-        root_container,
-        old_container_perms,
-        new_container_perms,
-        container_ptr,
-        new_container_ptr,
-    );
-    new_container_preserve_tree_inv_2(
-        root_container,
-        old_container_perms,
-        new_container_perms,
-        container_ptr,
-        new_container_ptr,
-    );
-    new_container_preserve_tree_inv_3(
-        root_container,
-        old_container_perms,
-        new_container_perms,
-        container_ptr,
-        new_container_ptr,
-    );
-    new_container_preserve_tree_inv_4(
-        root_container,
-        old_container_perms,
-        new_container_perms,
-        container_ptr,
-        new_container_ptr,
-    );
-    new_container_preserve_tree_inv_5(
-        root_container,
-        old_container_perms,
-        new_container_perms,
-        container_ptr,
-        new_container_ptr,
-    );
-    new_container_preserve_tree_inv_6(
-        root_container,
-        old_container_perms,
-        new_container_perms,
-        container_ptr,
-        new_container_ptr,
-    );
-    new_container_preserve_tree_inv_7(
-        root_container,
-        old_container_perms,
-        new_container_perms,
-        container_ptr,
-        new_container_ptr,
-    );
 }
 
 pub proof fn new_container_preserve_tree_inv_1(
@@ -1086,8 +826,6 @@ pub proof fn new_container_preserve_tree_inv_2(
 // container_subtree_set_exclusive(root_container, new_container_perms),
 
 {
-    seq_push_lemma::<ContainerPtr>();
-    seq_push_unique_lemma::<ContainerPtr>();
 }
 
 pub proof fn new_container_preserve_tree_inv_3(
@@ -1152,8 +890,6 @@ pub proof fn new_container_preserve_tree_inv_4(
 // container_subtree_set_exclusive(root_container, new_container_perms),
 
 {
-    seq_push_lemma::<ContainerPtr>();
-    seq_push_unique_lemma::<ContainerPtr>();
 }
 
 pub proof fn new_container_preserve_tree_inv_5(
@@ -1185,8 +921,6 @@ pub proof fn new_container_preserve_tree_inv_5(
 // container_subtree_set_exclusive(root_container, new_container_perms),
 
 {
-    seq_push_lemma::<ContainerPtr>();
-    seq_push_unique_lemma::<ContainerPtr>();
 }
 
 pub proof fn new_container_preserve_tree_inv_6(
@@ -1247,9 +981,6 @@ pub proof fn new_container_preserve_tree_inv_7(
 // container_subtree_set_exclusive(root_container, new_container_perms),
 
 {
-    // assert(false);
-    seq_push_lemma::<ContainerPtr>();
-    seq_push_unique_lemma::<ContainerPtr>();
 }
 
 pub open spec fn remove_container_ensures(
@@ -1344,24 +1075,6 @@ pub proof fn remove_container_preserve_tree_inv_2(
         ),
 
 {
-    seq_remove_lemma::<ContainerPtr>();
-    seq_remove_lemma_2::<ContainerPtr>();
-    old_container_perms[old_container_perms[container_ptr].value().parent.unwrap()].value().children.unique_implys_no_duplicates();
-    assert(forall|c_ptr: ContainerPtr, child_c_ptr: ContainerPtr|
-        #![trigger new_container_perms[c_ptr].value().children@.contains(child_c_ptr)]
-        new_container_perms.dom().contains(c_ptr) && new_container_perms[c_ptr].value().children@.contains(
-            child_c_ptr,
-        ) ==> new_container_perms.dom().contains(child_c_ptr)
-            && new_container_perms[child_c_ptr].value().parent.unwrap() == c_ptr
-            && new_container_perms[child_c_ptr].value().depth == new_container_perms[c_ptr].value().depth
-            + 1);
-    assert( forall|c_ptr: ContainerPtr|
-        #![trigger new_container_perms.dom().contains(c_ptr)]
-        new_container_perms.dom().contains(c_ptr) && new_container_perms[c_ptr].value().parent.is_Some()
-            ==> new_container_perms.dom().contains(new_container_perms[c_ptr].value().parent.unwrap())
-            && new_container_perms[new_container_perms[c_ptr].value().parent.unwrap()].value().children@.contains(
-        c_ptr)
-    );
 }
 
 pub proof fn remove_container_preserve_tree_inv_3(
@@ -1384,9 +1097,6 @@ pub proof fn remove_container_preserve_tree_inv_3(
         ),
 
 {
-    seq_remove_lemma::<ContainerPtr>();
-    seq_remove_lemma_2::<ContainerPtr>();
-    old_container_perms[old_container_perms[container_ptr].value().parent.unwrap()].value().children.unique_implys_no_duplicates();
 }
 
 pub proof fn remove_container_preserve_tree_inv_4(
@@ -1460,14 +1170,6 @@ pub proof fn remove_container_preserve_tree_inv_6(
         ),
 
 {
-    seq_remove_lemma::<ContainerPtr>();
-    seq_remove_lemma_2::<ContainerPtr>();
-    old_container_perms[old_container_perms[container_ptr].value().parent.unwrap()].value().children.unique_implys_no_duplicates();
-    no_child_imply_no_subtree(
-        root_container,
-        old_container_perms,
-        container_ptr,
-    );
 }
 
 pub proof fn remove_container_preserve_tree_inv_7(
@@ -1556,13 +1258,6 @@ pub proof fn remove_container_preserve_tree_inv(
             new_container_perms,
         ),
 {
-    remove_container_preserve_tree_inv_1(root_container, old_container_perms, new_container_perms,container_ptr,);
-    remove_container_preserve_tree_inv_2(root_container, old_container_perms, new_container_perms,container_ptr,);
-    remove_container_preserve_tree_inv_3(root_container, old_container_perms, new_container_perms,container_ptr,);
-    remove_container_preserve_tree_inv_4(root_container, old_container_perms, new_container_perms,container_ptr,);
-    remove_container_preserve_tree_inv_5(root_container, old_container_perms, new_container_perms,container_ptr,);
-    remove_container_preserve_tree_inv_6(root_container, old_container_perms, new_container_perms,container_ptr,);
-    remove_container_preserve_tree_inv_7(root_container, old_container_perms, new_container_perms,container_ptr,);
 }
 
 //exec
@@ -1582,52 +1277,19 @@ pub fn container_tree_check_is_ancestor(
         ret == container_perms@[child_ptr].value().uppertree_seq@.contains(a_ptr),
         ret == container_perms@[a_ptr].value().subtree_set@.contains(child_ptr),
 {
-    // assert(false);
-    proof {
-        seq_push_lemma::<ContainerPtr>();
-    }
-    assert(container_perms@[child_ptr].value().parent.is_Some());
     let tracked child_perm = container_perms.borrow().tracked_borrow(child_ptr);
     let child: &Container = PPtr::<Container>::from_usize(child_ptr).borrow(Tracked(child_perm));
     let mut current_parent_ptr = child.parent.unwrap();
     let mut depth = child.depth;
-    assert(current_parent_ptr == container_perms@[child_ptr].value().uppertree_seq@[depth - 1]);
 
     if current_parent_ptr == a_ptr {
         return true;
     }
     while depth != 1
-        invariant
-            1 <= depth <= container_perms@[child_ptr].value().depth,
-            container_perms_wf(container_perms@),
-            container_tree_wf(root_container, container_perms@),
-            container_perms@.dom().contains(a_ptr),
-            container_perms@.dom().contains(child_ptr),
-            container_perms@[a_ptr].value().depth < container_perms@[child_ptr].value().depth,
-            child_ptr != root_container,
-            current_parent_ptr == container_perms@[child_ptr].value().uppertree_seq@[depth - 1],
-            forall|i: int|
-                #![auto]
-                depth - 1 <= i < container_perms@[child_ptr].value().depth
-                    ==> container_perms@[child_ptr].value().uppertree_seq@[i] != a_ptr,
-        ensures
-            depth == 1,
-            forall|i: int|
-                #![auto]
-                0 <= i < container_perms@[child_ptr].value().depth
-                    ==> container_perms@[child_ptr].value().uppertree_seq@[i] != a_ptr,
     {
-        assert(container_perms@[child_ptr].value().uppertree_seq@.contains(current_parent_ptr));
-        assert(container_perms@.dom().contains(current_parent_ptr));
-        assert(container_perms@[child_ptr].value().uppertree_seq@.no_duplicates());
-        assert(container_perms@[child_ptr].value().uppertree_seq@.index_of(current_parent_ptr)
-            == depth - 1);
-        assert(container_perms@[current_parent_ptr].value().depth == depth - 1);
-        assert(container_perms@[current_parent_ptr].value().parent.is_Some());
         let tracked current_parent_perm = container_perms.borrow().tracked_borrow(
             current_parent_ptr,
         );
-        assert(current_parent_perm.addr() == current_parent_ptr);
         let current_parent: &Container = PPtr::<Container>::from_usize(current_parent_ptr).borrow(
             Tracked(current_parent_perm),
         );
@@ -1637,8 +1299,6 @@ pub fn container_tree_check_is_ancestor(
                 == current_parent_ptr_tmp);
             return true;
         }
-        assert(container_perms@[current_parent_ptr].value().uppertree_seq@[depth - 1 - 1]
-            == current_parent_ptr_tmp);
         current_parent_ptr = current_parent_ptr_tmp;
         depth = depth - 1;
     }

@@ -32,27 +32,6 @@ impl Kernel {
 
         if let Some((page_ptr, page_perm)) = page_op{
             self.page_alloc.free_page_4k(page_ptr, page_perm);
-                   assert( self.mem_man.page_closure().disjoint(
-            self.proc_man.page_closure(),
-        ));
-        assert(self.mem_man.page_closure() + self.proc_man.page_closure()
-            == self.page_alloc.allocated_pages_4k());
-        assert(self.page_alloc.mapped_pages_2m() =~= Set::empty());
-        assert(self.page_alloc.mapped_pages_1g() =~= Set::empty());
-        assert(self.page_alloc.allocated_pages_2m() =~= Set::empty());
-        assert(self.page_alloc.allocated_pages_1g() =~= Set::empty());
-        assert(self.page_alloc.container_map_4k@.dom() =~= self.proc_man.container_dom());
-        assert(self.page_alloc.container_map_2m@.dom() =~= self.proc_man.container_dom());
-        assert(self.page_alloc.container_map_1g@.dom() =~= self.proc_man.container_dom());
-            assert(self.memory_wf());
-            assert(self.page_mapping_wf());
-            assert(self.mapping_wf());
-            assert(self.pcid_ioid_wf());
-        }else{
-            assert(self.memory_wf());
-            assert(self.page_mapping_wf());
-            assert(self.mapping_wf());
-            assert(self.pcid_ioid_wf());
         }
     }
 }

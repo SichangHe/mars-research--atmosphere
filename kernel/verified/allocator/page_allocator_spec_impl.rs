@@ -747,11 +747,6 @@ impl PageAllocator {
         ensures
             self.page_is_mapped(page_ptr) == true,
     {
-        page_index_lemma();
-        page_ptr_lemma1();
-        page_ptr_2m_lemma();
-        page_ptr_1g_lemma();
-        assert(self.page_array@[page_ptr2page_index(page_ptr) as int].ref_count != 0);
     }
 
     pub proof fn mapped_page_are_not_allocated(&self, page_ptr: PagePtr)
@@ -784,12 +779,6 @@ impl PageAllocator {
                 #![trigger self.page_is_mapped(page_ptr)]
                 self.free_pages_4k().contains(page_ptr) ==> self.page_is_mapped(page_ptr) == false,
     {
-        assert(forall|page_ptr: PagePtr|
-            #![trigger self.free_pages_4k().contains(page_ptr)]
-            #![trigger self.page_is_mapped(page_ptr)]
-            self.free_pages_4k().contains(page_ptr) ==> page_ptr_valid(page_ptr)
-                && self.page_array@[page_ptr2page_index(page_ptr) as int].state == PageState::Free4k
-                && self.page_is_mapped(page_ptr) == false);
     }
 
     // pub proof fn page_ptr_page_index_lemma(&self)
@@ -1008,73 +997,9 @@ impl PageAllocator {
             ret.0 == ret.1@.addr(),
             ret.1@.is_init(),
     {
-        proof {
-            page_ptr_lemma1();
-            seq_skip_lemma::<PagePtr>();
-            self.free_pages_1g.wf_to_no_duplicates();
-            self.free_pages_2m.wf_to_no_duplicates();
-            self.free_pages_4k.wf_to_no_duplicates();
-        }
         let ret = self.free_pages_2m.pop().0;
-        assert(page_ptr_valid(ret)) by {
-            page_ptr_2m_lemma();
-        };
         self.set_state(page_ptr2page_index(ret), PageState::Allocated2m);
-        proof {
-            self.allocated_pages_2m@ = self.allocated_pages_2m@.insert(ret);
-        }
         let tracked mut ret_perm = self.page_perms_2m.borrow_mut().tracked_remove(ret);
-        assert(self.page_array_wf());
-        assert(self.free_pages_4k_wf()) by {
-            page_ptr_lemma();
-            page_ptr_lemma1();
-        };;
-        assert(self.free_pages_2m_wf()) by {
-            page_ptr_2m_lemma();
-        };
-        assert(self.free_pages_1g_wf()) by {
-            page_ptr_1g_lemma();
-        };
-        assert(self.allocated_pages_4k_wf());
-        assert(self.allocated_pages_2m_wf()) by {
-            page_ptr_2m_lemma();
-        };
-        assert(self.allocated_pages_1g_wf()) by {
-            page_ptr_1g_lemma();
-        };
-        assert(self.mapped_pages_4k_wf());
-        assert(self.mapped_pages_2m_wf()) by {
-            page_ptr_2m_lemma();
-        };
-        assert(self.mapped_pages_1g_wf()) by {
-            page_ptr_1g_lemma();
-        };
-        assert(self.merged_pages_wf()) by {
-            page_ptr_page_index_truncate_lemma();
-        };
-        assert(self.hugepages_wf()) by {
-            page_index_lemma();
-            page_ptr_2m_lemma();
-            page_ptr_1g_lemma();
-        };
-        assert(self.container_wf()) by {
-            page_index_lemma();
-            page_ptr_2m_lemma();
-            page_ptr_1g_lemma();
-            // assert(forall|i:int|
-            //     #![trigger self.page_array@[i].state]
-            //     #![trigger self.page_array@[i].owning_container]
-            //     0<=i<NUM_PAGES && i != page_ptr2page_index(ret)
-            //     ==>
-            //     self.page_array@[i].state == old(self).page_array@[i].state
-            //     &&
-            //     self.page_array@[i].owning_container == old(self).page_array@[i].owning_container
-            // );
-            // assert(
-
-            // );
-        };
-        // assert(self.perm_wf());
         return (ret, Tracked(ret_perm));
     }
 
@@ -1186,52 +1111,9 @@ impl PageAllocator {
             forall|p: PagePtr| #![auto] self.page_is_mapped(p) == old(self).page_is_mapped(p),
             self.free_pages_4k.len() == old(self).free_pages_4k.len() - 1,
     {
-        proof {
-            page_ptr_lemma1();
-            seq_skip_lemma::<PagePtr>();
-            self.free_pages_1g.wf_to_no_duplicates();
-            self.free_pages_2m.wf_to_no_duplicates();
-            self.free_pages_4k.wf_to_no_duplicates();
-        }
         let ret = self.free_pages_4k.pop().0;
-        assert(page_ptr_valid(ret));
         self.set_state(page_ptr2page_index(ret), PageState::Allocated4k);
-        assert(self.page_array@[page_ptr2page_index(ret) as int].is_io_page == false);
-        proof {
-            self.allocated_pages_4k@ = self.allocated_pages_4k@.insert(ret);
-        }
         let tracked mut ret_perm = self.page_perms_4k.borrow_mut().tracked_remove(ret);
-        assert(self.page_array_wf());
-        assert(self.free_pages_4k_wf());
-        assert(self.free_pages_2m_wf()) by {
-            page_ptr_2m_lemma();
-        };
-        assert(self.free_pages_1g_wf()) by {
-            page_ptr_1g_lemma();
-        };
-        assert(self.allocated_pages_4k_wf());
-        assert(self.allocated_pages_2m_wf()) by {
-            page_ptr_2m_lemma();
-        };
-        assert(self.allocated_pages_1g_wf()) by {
-            page_ptr_1g_lemma();
-        };
-        assert(self.mapped_pages_4k_wf());
-        assert(self.mapped_pages_2m_wf()) by {
-            page_ptr_2m_lemma();
-        };
-        assert(self.mapped_pages_1g_wf()) by {
-            page_ptr_1g_lemma();
-        };
-        assert(self.merged_pages_wf()) by {
-            page_ptr_page_index_truncate_lemma();
-        };
-        assert(self.hugepages_wf()) by {
-            page_index_lemma();
-            page_ptr_2m_lemma();
-            page_ptr_1g_lemma();
-        };
-        assert(self.perm_wf());
         return (ret, Tracked(ret_perm));
     }
 
@@ -1270,55 +1152,9 @@ impl PageAllocator {
             self.free_pages_4k.len() == old(self).free_pages_4k.len() - 1,
             self.get_container_owned_pages(ret.0) == Set::<PagePtr>::empty(),
     {
-        proof {
-            page_ptr_lemma1();
-            seq_skip_lemma::<PagePtr>();
-            self.free_pages_1g.wf_to_no_duplicates();
-            self.free_pages_2m.wf_to_no_duplicates();
-            self.free_pages_4k.wf_to_no_duplicates();
-        }
         let ret = self.free_pages_4k.pop().0;
-        assert(page_ptr_valid(ret));
         self.set_state(page_ptr2page_index(ret), PageState::Allocated4k);
-        assert(self.page_array@[page_ptr2page_index(ret) as int].is_io_page == false);
-        proof {
-            self.allocated_pages_4k@ = self.allocated_pages_4k@.insert(ret);
-            self.container_map_4k@ = self.container_map_4k@.insert(ret, Set::empty());
-            self.container_map_2m@ = self.container_map_2m@.insert(ret, Set::empty());
-            self.container_map_1g@ = self.container_map_1g@.insert(ret, Set::empty());
-        }
         let tracked mut ret_perm = self.page_perms_4k.borrow_mut().tracked_remove(ret);
-        assert(self.page_array_wf());
-        assert(self.free_pages_4k_wf());
-        assert(self.free_pages_2m_wf()) by {
-            page_ptr_2m_lemma();
-        };
-        assert(self.free_pages_1g_wf()) by {
-            page_ptr_1g_lemma();
-        };
-        assert(self.allocated_pages_4k_wf());
-        assert(self.allocated_pages_2m_wf()) by {
-            page_ptr_2m_lemma();
-        };
-        assert(self.allocated_pages_1g_wf()) by {
-            page_ptr_1g_lemma();
-        };
-        assert(self.mapped_pages_4k_wf());
-        assert(self.mapped_pages_2m_wf()) by {
-            page_ptr_2m_lemma();
-        };
-        assert(self.mapped_pages_1g_wf()) by {
-            page_ptr_1g_lemma();
-        };
-        assert(self.merged_pages_wf()) by {
-            page_ptr_page_index_truncate_lemma();
-        };
-        assert(self.hugepages_wf()) by {
-            page_index_lemma();
-            page_ptr_2m_lemma();
-            page_ptr_1g_lemma();
-        };
-        assert(self.perm_wf());
         return (ret, Tracked(ret_perm));
     }
 
@@ -1354,54 +1190,9 @@ impl PageAllocator {
                     =~= old(self).get_container_owned_pages(c),
             forall|p: PagePtr| #![auto] self.page_is_mapped(p) == old(self).page_is_mapped(p),
     {
-        proof {
-            page_ptr_lemma1();
-            seq_push_lemma::<PagePtr>();
-            self.free_pages_1g.wf_to_no_duplicates();
-            self.free_pages_2m.wf_to_no_duplicates();
-            self.free_pages_4k.wf_to_no_duplicates();
-            self.free_pages_4k@.unique_seq_to_set();
-            self.len_lemma_allocated_4k(target_ptr);
-        }
-        assert(page_ptr_valid(target_ptr));
         let rev_index = self.free_pages_4k.push(&target_ptr);
         self.set_rev_pointer(page_ptr2page_index(target_ptr), rev_index);
         self.set_state(page_ptr2page_index(target_ptr), PageState::Free4k);
-        proof {
-            self.allocated_pages_4k@ = self.allocated_pages_4k@.remove(target_ptr);
-            self.page_perms_4k.borrow_mut().tracked_insert(target_ptr, target_perm);
-        }
-        assert(self.page_array_wf());
-        assert(self.free_pages_4k_wf());
-        assert(self.free_pages_2m_wf()) by {
-            page_ptr_2m_lemma();
-        };
-        assert(self.free_pages_1g_wf()) by {
-            page_ptr_1g_lemma();
-        };
-        assert(self.allocated_pages_4k_wf());
-        assert(self.allocated_pages_2m_wf()) by {
-            page_ptr_2m_lemma();
-        };
-        assert(self.allocated_pages_1g_wf()) by {
-            page_ptr_1g_lemma();
-        };
-        assert(self.mapped_pages_4k_wf());
-        assert(self.mapped_pages_2m_wf()) by {
-            page_ptr_2m_lemma();
-        };
-        assert(self.mapped_pages_1g_wf()) by {
-            page_ptr_1g_lemma();
-        };
-        assert(self.merged_pages_wf()) by {
-            page_ptr_page_index_truncate_lemma();
-        };
-        assert(self.hugepages_wf()) by {
-            page_index_lemma();
-            page_ptr_2m_lemma();
-            page_ptr_1g_lemma();
-        };
-        assert(self.perm_wf());
     }
 
     pub fn alloc_and_map_4k(&mut self, pcid: Pcid, va: VAddr, c_ptr: ContainerPtr) -> (ret: PagePtr)
@@ -1449,15 +1240,7 @@ impl PageAllocator {
                 c_ptr,
             ).insert(ret),
     {
-        proof {
-            page_ptr_lemma1();
-            seq_skip_lemma::<PagePtr>();
-            self.free_pages_1g.wf_to_no_duplicates();
-            self.free_pages_2m.wf_to_no_duplicates();
-            self.free_pages_4k.wf_to_no_duplicates();
-        }
         let ret = self.free_pages_4k.pop().0;
-        assert(page_ptr_valid(ret));
         self.set_state(page_ptr2page_index(ret), PageState::Mapped4k);
         self.set_ref_count(page_ptr2page_index(ret), 1);
         self.set_mapping(
@@ -1466,48 +1249,6 @@ impl PageAllocator {
         );
         self.set_io_mapping(page_ptr2page_index(ret), Ghost(Set::<(IOid, VAddr)>::empty()));
         self.set_owning_container(page_ptr2page_index(ret), Some(c_ptr));
-        proof {
-            self.container_map_4k@ = self.container_map_4k@.insert(
-                c_ptr,
-                self.container_map_4k@[c_ptr].insert(ret),
-            );
-        }
-        assert(self.page_array@[page_ptr2page_index(ret) as int].is_io_page == false);
-        proof {
-            self.mapped_pages_4k@ = self.mapped_pages_4k@.insert(ret);
-        }
-
-        assert(self.page_array_wf());
-        assert(self.free_pages_4k_wf());
-        assert(self.free_pages_2m_wf()) by {
-            page_ptr_2m_lemma();
-        };
-        assert(self.free_pages_1g_wf()) by {
-            page_ptr_1g_lemma();
-        };
-        assert(self.allocated_pages_4k_wf());
-        assert(self.allocated_pages_2m_wf()) by {
-            page_ptr_2m_lemma();
-        };
-        assert(self.allocated_pages_1g_wf()) by {
-            page_ptr_1g_lemma();
-        };
-        assert(self.mapped_pages_4k_wf());
-        assert(self.mapped_pages_2m_wf()) by {
-            page_ptr_2m_lemma();
-        };
-        assert(self.mapped_pages_1g_wf()) by {
-            page_ptr_1g_lemma();
-        };
-        assert(self.merged_pages_wf()) by {
-            page_ptr_page_index_truncate_lemma();
-        };
-        assert(self.hugepages_wf()) by {
-            page_index_lemma();
-            page_ptr_2m_lemma();
-            page_ptr_1g_lemma();
-
-        };
         return ret;
     }
 
@@ -1561,15 +1302,7 @@ impl PageAllocator {
                 c_ptr,
             ).insert(ret),
     {
-        proof {
-            page_ptr_lemma1();
-            seq_skip_lemma::<PagePtr>();
-            self.free_pages_1g.wf_to_no_duplicates();
-            self.free_pages_2m.wf_to_no_duplicates();
-            self.free_pages_4k.wf_to_no_duplicates();
-        }
         let ret = self.free_pages_4k.pop().0;
-        assert(page_ptr_valid(ret));
         self.set_state(page_ptr2page_index(ret), PageState::Mapped4k);
         self.set_ref_count(page_ptr2page_index(ret), 1);
         self.set_mapping(page_ptr2page_index(ret), Ghost(Set::<(Pcid, VAddr)>::empty()));
@@ -1578,48 +1311,6 @@ impl PageAllocator {
             Ghost(Set::<(IOid, VAddr)>::empty().insert((ioid, va))),
         );
         self.set_owning_container(page_ptr2page_index(ret), Some(c_ptr));
-        proof {
-            self.container_map_4k@ = self.container_map_4k@.insert(
-                c_ptr,
-                self.container_map_4k@[c_ptr].insert(ret),
-            );
-        }
-        assert(self.page_array@[page_ptr2page_index(ret) as int].is_io_page == false);
-        proof {
-            self.mapped_pages_4k@ = self.mapped_pages_4k@.insert(ret);
-        }
-
-        assert(self.page_array_wf());
-        assert(self.free_pages_4k_wf());
-        assert(self.free_pages_2m_wf()) by {
-            page_ptr_2m_lemma();
-        };
-        assert(self.free_pages_1g_wf()) by {
-            page_ptr_1g_lemma();
-        };
-        assert(self.allocated_pages_4k_wf());
-        assert(self.allocated_pages_2m_wf()) by {
-            page_ptr_2m_lemma();
-        };
-        assert(self.allocated_pages_1g_wf()) by {
-            page_ptr_1g_lemma();
-        };
-        assert(self.mapped_pages_4k_wf());
-        assert(self.mapped_pages_2m_wf()) by {
-            page_ptr_2m_lemma();
-        };
-        assert(self.mapped_pages_1g_wf()) by {
-            page_ptr_1g_lemma();
-        };
-        assert(self.merged_pages_wf()) by {
-            page_ptr_page_index_truncate_lemma();
-        };
-        assert(self.hugepages_wf()) by {
-            page_index_lemma();
-            page_ptr_2m_lemma();
-            page_ptr_1g_lemma();
-
-        };
         return ret;
     }
 
@@ -1647,15 +1338,7 @@ impl PageAllocator {
             self.page_mappings(ret) =~= Set::<(Pcid, VAddr)>::empty().insert((pcid, va)),
             self.page_io_mappings(ret) =~= Set::<(IOid, VAddr)>::empty(),
     {
-        proof {
-            page_ptr_lemma1();
-            seq_skip_lemma::<PagePtr>();
-            self.free_pages_1g.wf_to_no_duplicates();
-            self.free_pages_2m.wf_to_no_duplicates();
-            self.free_pages_4k.wf_to_no_duplicates();
-        }
         let ret = self.free_pages_2m.pop().0;
-        assert(page_ptr_valid(ret)) by { page_ptr_2m_lemma() };
         self.set_state(page_ptr2page_index(ret), PageState::Mapped2m);
         self.set_ref_count(page_ptr2page_index(ret), 1);
         self.set_mapping(
@@ -1664,47 +1347,6 @@ impl PageAllocator {
         );
         self.set_io_mapping(page_ptr2page_index(ret), Ghost(Set::<(IOid, VAddr)>::empty()));
         self.set_owning_container(page_ptr2page_index(ret), Some(c_ptr));
-        proof {
-            self.container_map_2m@ = self.container_map_2m@.insert(
-                c_ptr,
-                self.container_map_2m@[c_ptr].insert(ret),
-            );
-        }
-        assert(self.page_array@[page_ptr2page_index(ret) as int].is_io_page == false);
-        proof {
-            self.mapped_pages_2m@ = self.mapped_pages_2m@.insert(ret);
-        }
-
-        assert(self.page_array_wf());
-        assert(self.free_pages_4k_wf());
-        assert(self.free_pages_2m_wf()) by {
-            page_ptr_2m_lemma();
-        };
-        assert(self.free_pages_1g_wf()) by {
-            page_ptr_1g_lemma();
-        };
-        assert(self.allocated_pages_4k_wf());
-        assert(self.allocated_pages_2m_wf()) by {
-            page_ptr_2m_lemma();
-        };
-        assert(self.allocated_pages_1g_wf()) by {
-            page_ptr_1g_lemma();
-        };
-        assert(self.mapped_pages_4k_wf());
-        assert(self.mapped_pages_2m_wf()) by {
-            page_ptr_2m_lemma();
-        };
-        assert(self.mapped_pages_1g_wf()) by {
-            page_ptr_1g_lemma();
-        };
-        assert(self.merged_pages_wf()) by {
-            page_ptr_page_index_truncate_lemma();
-        };
-        assert(self.hugepages_wf()) by {
-            page_index_lemma();
-            page_ptr_2m_lemma();
-            page_ptr_1g_lemma();
-        };
         return ret;
     }
 
@@ -1749,50 +1391,11 @@ impl PageAllocator {
                 self.container_map_4k@.dom().contains(c) ==> self.get_container_owned_pages(c)
                     =~= old(self).get_container_owned_pages(c),
     {
-        proof {
-            page_ptr_lemma1();
-            seq_skip_lemma::<PagePtr>();
-            self.free_pages_1g.wf_to_no_duplicates();
-            self.free_pages_2m.wf_to_no_duplicates();
-            self.free_pages_4k.wf_to_no_duplicates();
-        }
-        assert(page_ptr_valid(target_ptr));
         let old_ref_count = self.page_array.get(page_ptr2page_index(target_ptr)).ref_count;
         let old_mappings = self.page_array.get(page_ptr2page_index(target_ptr)).mappings;
         self.set_ref_count(page_ptr2page_index(target_ptr), old_ref_count + 1);
         self.set_mapping(page_ptr2page_index(target_ptr), Ghost(old_mappings@.insert((pcid, va))));
 
-        assert(self.page_array_wf());
-        assert(self.free_pages_4k_wf());
-        assert(self.free_pages_2m_wf()) by {
-            page_ptr_2m_lemma();
-        };
-        assert(self.free_pages_1g_wf()) by {
-            page_ptr_1g_lemma();
-        };
-        assert(self.allocated_pages_4k_wf());
-        assert(self.allocated_pages_2m_wf()) by {
-            page_ptr_2m_lemma();
-        };
-        assert(self.allocated_pages_1g_wf()) by {
-            page_ptr_1g_lemma();
-        };
-        assert(self.mapped_pages_4k_wf());
-        assert(self.mapped_pages_2m_wf()) by {
-            page_ptr_2m_lemma();
-        };
-        assert(self.mapped_pages_1g_wf()) by {
-            page_ptr_1g_lemma();
-        };
-        assert(self.merged_pages_wf()) by {
-            page_ptr_page_index_truncate_lemma();
-        };
-        assert(self.hugepages_wf()) by {
-            page_index_lemma();
-            page_ptr_2m_lemma();
-            page_ptr_1g_lemma();
-
-        };
     }
 
     pub fn add_io_mapping_4k(&mut self, target_ptr: PagePtr, ioid: IOid, va: VAddr)
@@ -1834,50 +1437,10 @@ impl PageAllocator {
                 self.container_map_4k@.dom().contains(c) ==> self.get_container_owned_pages(c)
                     =~= old(self).get_container_owned_pages(c),
     {
-        proof {
-            page_ptr_lemma1();
-            seq_skip_lemma::<PagePtr>();
-            self.free_pages_1g.wf_to_no_duplicates();
-            self.free_pages_2m.wf_to_no_duplicates();
-            self.free_pages_4k.wf_to_no_duplicates();
-        }
-        assert(page_ptr_valid(target_ptr));
         let old_ref_count = self.page_array.get(page_ptr2page_index(target_ptr)).ref_count;
         let old_io_mappings = self.page_array.get(page_ptr2page_index(target_ptr)).io_mappings;
         self.set_ref_count(page_ptr2page_index(target_ptr), old_ref_count + 1);
         self.set_io_mapping(page_ptr2page_index(target_ptr), Ghost(old_io_mappings@.insert((ioid, va))));
-
-        assert(self.page_array_wf());
-        assert(self.free_pages_4k_wf());
-        assert(self.free_pages_2m_wf()) by {
-            page_ptr_2m_lemma();
-        };
-        assert(self.free_pages_1g_wf()) by {
-            page_ptr_1g_lemma();
-        };
-        assert(self.allocated_pages_4k_wf());
-        assert(self.allocated_pages_2m_wf()) by {
-            page_ptr_2m_lemma();
-        };
-        assert(self.allocated_pages_1g_wf()) by {
-            page_ptr_1g_lemma();
-        };
-        assert(self.mapped_pages_4k_wf());
-        assert(self.mapped_pages_2m_wf()) by {
-            page_ptr_2m_lemma();
-        };
-        assert(self.mapped_pages_1g_wf()) by {
-            page_ptr_1g_lemma();
-        };
-        assert(self.merged_pages_wf()) by {
-            page_ptr_page_index_truncate_lemma();
-        };
-        assert(self.hugepages_wf()) by {
-            page_index_lemma();
-            page_ptr_2m_lemma();
-            page_ptr_1g_lemma();
-
-        };
     }
 
     fn remove_mapping_4k_helper1(&mut self, target_ptr: PagePtr, pcid: Pcid, va: VAddr)
@@ -1912,59 +1475,13 @@ impl PageAllocator {
                 ) as int].owning_container.unwrap()].remove(target_ptr),
             ),
     {
-        proof {
-            page_ptr_lemma1();
-            seq_push_lemma::<PagePtr>();
-            self.free_pages_1g.wf_to_no_duplicates();
-            self.free_pages_2m.wf_to_no_duplicates();
-            self.free_pages_4k.wf_to_no_duplicates();
-        }
-        assert(page_ptr_valid(target_ptr));
         let c_ptr = self.page_array.get(page_ptr2page_index(target_ptr)).owning_container.unwrap();
         self.set_ref_count(page_ptr2page_index(target_ptr), 0);
         self.set_mapping(page_ptr2page_index(target_ptr), Ghost(Set::empty()));
         self.set_state(page_ptr2page_index(target_ptr), PageState::Unavailable4k);
         self.set_owning_container(page_ptr2page_index(target_ptr), None);
-        proof {
-            self.mapped_pages_4k@ = self.mapped_pages_4k@.remove(target_ptr);
-        }
-        proof {
-            self.container_map_4k@ = self.container_map_4k@.insert(
-                c_ptr,
-                self.container_map_4k@[c_ptr].remove(target_ptr),
-            );
-        }
+
         let tracked mut removed_perm = self.page_perms_4k.borrow_mut().tracked_remove(target_ptr);
-        assert(self.page_array_wf());
-        assert(self.free_pages_4k_wf());
-        assert(self.free_pages_2m_wf()) by {
-            page_ptr_2m_lemma();
-        };
-        assert(self.free_pages_1g_wf()) by {
-            page_ptr_1g_lemma();
-        };
-        assert(self.allocated_pages_4k_wf());
-        assert(self.allocated_pages_2m_wf()) by {
-            page_ptr_2m_lemma();
-        };
-        assert(self.allocated_pages_1g_wf()) by {
-            page_ptr_1g_lemma();
-        };
-        assert(self.mapped_pages_4k_wf());
-        assert(self.mapped_pages_2m_wf()) by {
-            page_ptr_2m_lemma();
-        };
-        assert(self.mapped_pages_1g_wf()) by {
-            page_ptr_1g_lemma();
-        };
-        assert(self.merged_pages_wf()) by {
-            page_ptr_page_index_truncate_lemma();
-        };
-        assert(self.hugepages_wf()) by {
-            page_index_lemma();
-            page_ptr_2m_lemma();
-            page_ptr_1g_lemma();
-        };
     }
 
     fn remove_mapping_4k_helper2(&mut self, target_ptr: PagePtr, pcid: Pcid, va: VAddr)
@@ -1999,65 +1516,13 @@ impl PageAllocator {
                 ) as int].owning_container.unwrap()].remove(target_ptr),
             ),
     {
-        proof {
-            page_ptr_lemma1();
-            seq_push_lemma::<PagePtr>();
-            self.free_pages_1g.wf_to_no_duplicates();
-            self.free_pages_2m.wf_to_no_duplicates();
-            self.free_pages_4k.wf_to_no_duplicates();
-        }
-        assert(page_ptr_valid(target_ptr));
         let c_ptr = self.page_array.get(page_ptr2page_index(target_ptr)).owning_container.unwrap();
-        proof {
-            self.free_pages_4k@.unique_seq_to_set();
-            self.len_lemma_mapped_4k(target_ptr);
-        }
         let rev_index = self.free_pages_4k.push(&target_ptr);
         self.set_rev_pointer(page_ptr2page_index(target_ptr), rev_index);
         self.set_ref_count(page_ptr2page_index(target_ptr), 0);
         self.set_mapping(page_ptr2page_index(target_ptr), Ghost(Set::empty()));
         self.set_state(page_ptr2page_index(target_ptr), PageState::Free4k);
         self.set_owning_container(page_ptr2page_index(target_ptr), None);
-        proof {
-            self.mapped_pages_4k@ = self.mapped_pages_4k@.remove(target_ptr);
-        }
-        proof {
-            self.container_map_4k@ = self.container_map_4k@.insert(
-                c_ptr,
-                self.container_map_4k@[c_ptr].remove(target_ptr),
-            );
-        }
-        assert(self.page_array_wf());
-        assert(self.free_pages_4k_wf());
-        assert(self.free_pages_2m_wf()) by {
-            page_ptr_2m_lemma();
-        };
-        assert(self.free_pages_1g_wf()) by {
-            page_ptr_1g_lemma();
-        };
-        assert(self.allocated_pages_4k_wf());
-        assert(self.allocated_pages_2m_wf()) by {
-            page_ptr_2m_lemma();
-        };
-        assert(self.allocated_pages_1g_wf()) by {
-            page_ptr_1g_lemma();
-        };
-        assert(self.mapped_pages_4k_wf());
-        assert(self.mapped_pages_2m_wf()) by {
-            page_ptr_2m_lemma();
-        };
-        assert(self.mapped_pages_1g_wf()) by {
-            page_ptr_1g_lemma();
-        };
-        assert(self.merged_pages_wf()) by {
-            page_ptr_page_index_truncate_lemma();
-        };
-        assert(self.hugepages_wf()) by {
-            page_index_lemma();
-            page_ptr_2m_lemma();
-            page_ptr_1g_lemma();
-
-        };
     }
 
     fn remove_mapping_4k_helper3(&mut self, target_ptr: PagePtr, pcid: Pcid, va: VAddr)
@@ -2083,50 +1548,10 @@ impl PageAllocator {
             self.container_map_2m@ =~= old(self).container_map_2m@,
             self.container_map_1g@ =~= old(self).container_map_1g@,
     {
-        proof {
-            page_ptr_lemma1();
-            seq_push_lemma::<PagePtr>();
-            self.free_pages_1g.wf_to_no_duplicates();
-            self.free_pages_2m.wf_to_no_duplicates();
-            self.free_pages_4k.wf_to_no_duplicates();
-        }
-        proof {
-            self.len_lemma_mapped_4k(target_ptr);
-        }
         let old_ref_count = self.page_array.get(page_ptr2page_index(target_ptr)).ref_count;
         let old_mappings = self.page_array.get(page_ptr2page_index(target_ptr)).mappings;
         self.set_ref_count(page_ptr2page_index(target_ptr), old_ref_count - 1);
         self.set_mapping(page_ptr2page_index(target_ptr), Ghost(old_mappings@.remove((pcid, va))));
-        assert(self.page_array_wf());
-        assert(self.free_pages_4k_wf());
-        assert(self.free_pages_2m_wf()) by {
-            page_ptr_2m_lemma();
-        };
-        assert(self.free_pages_1g_wf()) by {
-            page_ptr_1g_lemma();
-        };
-        assert(self.allocated_pages_4k_wf());
-        assert(self.allocated_pages_2m_wf()) by {
-            page_ptr_2m_lemma();
-        };
-        assert(self.allocated_pages_1g_wf()) by {
-            page_ptr_1g_lemma();
-        };
-        assert(self.mapped_pages_4k_wf());
-        assert(self.mapped_pages_2m_wf()) by {
-            page_ptr_2m_lemma();
-        };
-        assert(self.mapped_pages_1g_wf()) by {
-            page_ptr_1g_lemma();
-        };
-        assert(self.merged_pages_wf()) by {
-            page_ptr_page_index_truncate_lemma();
-        };
-        assert(self.hugepages_wf()) by {
-            page_index_lemma();
-            page_ptr_2m_lemma();
-            page_ptr_1g_lemma();
-        };
     }
 
     pub fn remove_mapping_4k(&mut self, target_ptr: PagePtr, pcid: Pcid, va: VAddr) -> (ret: Option<
@@ -2214,60 +1639,12 @@ impl PageAllocator {
                 ) as int].owning_container.unwrap()].remove(target_ptr),
             ),
     {
-        proof {
-            page_ptr_lemma1();
-            seq_push_lemma::<PagePtr>();
-            self.free_pages_1g.wf_to_no_duplicates();
-            self.free_pages_2m.wf_to_no_duplicates();
-            self.free_pages_4k.wf_to_no_duplicates();
-        }
-        assert(page_ptr_valid(target_ptr));
         let c_ptr = self.page_array.get(page_ptr2page_index(target_ptr)).owning_container.unwrap();
         self.set_ref_count(page_ptr2page_index(target_ptr), 0);
         self.set_io_mapping(page_ptr2page_index(target_ptr), Ghost(Set::empty()));
         self.set_state(page_ptr2page_index(target_ptr), PageState::Unavailable4k);
         self.set_owning_container(page_ptr2page_index(target_ptr), None);
-        proof {
-            self.mapped_pages_4k@ = self.mapped_pages_4k@.remove(target_ptr);
-        }
-        proof {
-            self.container_map_4k@ = self.container_map_4k@.insert(
-                c_ptr,
-                self.container_map_4k@[c_ptr].remove(target_ptr),
-            );
-        }
         let tracked mut removed_perm = self.page_perms_4k.borrow_mut().tracked_remove(target_ptr);
-        assert(self.page_array_wf());
-        assert(self.free_pages_4k_wf());
-        assert(self.free_pages_2m_wf()) by {
-            page_ptr_2m_lemma();
-        };
-        assert(self.free_pages_1g_wf()) by {
-            page_ptr_1g_lemma();
-        };
-        assert(self.allocated_pages_4k_wf());
-        assert(self.allocated_pages_2m_wf()) by {
-            page_ptr_2m_lemma();
-        };
-        assert(self.allocated_pages_1g_wf()) by {
-            page_ptr_1g_lemma();
-        };
-        assert(self.mapped_pages_4k_wf());
-        assert(self.mapped_pages_2m_wf()) by {
-            page_ptr_2m_lemma();
-        };
-        assert(self.mapped_pages_1g_wf()) by {
-            page_ptr_1g_lemma();
-        };
-        assert(self.merged_pages_wf()) by {
-            page_ptr_page_index_truncate_lemma();
-        };
-        assert(self.hugepages_wf()) by {
-            page_index_lemma();
-            page_ptr_2m_lemma();
-            page_ptr_1g_lemma();
-
-        };
     }
 
     fn remove_io_mapping_4k_helper2(&mut self, target_ptr: PagePtr, ioid: IOid, va: VAddr)
@@ -2519,123 +1896,12 @@ impl PageAllocator {
             self.free_pages_2m().len() == old(self).free_pages_2m().len() + 1,
             self.free_pages_1g().len() == old(self).free_pages_1g().len(),
     {
-        proof{
-            page_ptr_lemma1();
-            page_ptr_2m_lemma();
-            page_ptr_1g_lemma();
-            page_index_lemma();
-            page_ptr_page_index_truncate_lemma();
-        }
-        assert(old(self).page_array[target_page_idx + 0].state == PageState::Free4k);
-        assert(self.free_pages_4k@.contains(page_index2page_ptr(target_page_idx)));
         let mut merged_4k_page_perms = Tracked(Map::<usize, PagePerm4k>::tracked_empty());
         for index in 0..512
-            invariant
-                self.free_pages_2m().len() < NUM_PAGES,
-                self.free_pages_2m@.contains(page_index2page_ptr(target_page_idx)) == false,
-                forall|i:usize|
-                    #![auto]
-                    0<=i<index 
-                    ==>
-                    merged_4k_page_perms@.dom().contains(i)
-                    &&
-                    merged_4k_page_perms@[i].is_init()
-                    &&
-                    merged_4k_page_perms@[i].addr() == page_index2page_ptr((target_page_idx + i) as usize),
-                target_page_idx + 512 <= NUM_PAGES,
-                0<=index<=512,
-                forall|i:int| 
-                    #![trigger self.page_array[i].state]
-                    target_page_idx + index<=i<512 + target_page_idx
-                    ==> 
-                    self.page_array[i].state == PageState::Free4k
-                    &&
-                    self.page_array[i].is_io_page == false,
-                forall|i:int| 
-                    #![trigger self.page_array[i]]
-                    target_page_idx<=i<index+target_page_idx
-                    ==> 
-                    self.page_array[i].state == PageState::Merged2m
-                    &&
-                    self.page_array[i].is_io_page == false,
-                self.page_array_wf(),
-                self.free_pages_4k_wf(),
-                self.free_pages_2m_wf(),
-                self.free_pages_1g_wf(),
-                self.allocated_pages_4k_wf(),
-                self.allocated_pages_2m_wf(),
-                self.allocated_pages_1g_wf(),
-                self.mapped_pages_4k_wf(),
-                self.mapped_pages_2m_wf(),
-                self.mapped_pages_1g_wf(),
-                // self.merged_pages_wf(),
-                self.perm_wf(),
-                self.container_wf(),
-                self.mapped_pages_have_reference_counter(),
-                self.hugepages_wf(),
-
-                forall|i: usize|
-                    #![trigger page_index_2m_valid(i)]
-                    #![trigger spec_page_index_truncate_2m(i)]
-                    0 <= i < NUM_PAGES && self.page_array@[i as int].state == PageState::Merged2m && !(target_page_idx<=i<512+target_page_idx)
-                    ==> 
-                    page_index_2m_valid(i) == false && 
-                        ( self.page_array@[spec_page_index_truncate_2m(i) as int].state == PageState::Mapped2m
-                        || self.page_array@[spec_page_index_truncate_2m(i) as int].state
-                        == PageState::Free2m || self.page_array@[spec_page_index_truncate_2m(i) as int].state == PageState::Allocated2m
-                        || self.page_array@[spec_page_index_truncate_2m(i) as int].state
-                        == PageState::Unavailable2m) 
-                        && self.page_array@[i as int].is_io_page == self.page_array@[spec_page_index_truncate_2m(i) as int].is_io_page,
-                forall|i: usize|
-                    #![trigger page_index_1g_valid(i)]
-                    #![trigger spec_page_index_truncate_1g(i)]
-                    0 <= i < NUM_PAGES && self.page_array@[i as int].state == PageState::Merged1g
-                    ==> 
-                    page_index_1g_valid(i) == false 
-                    && (self.page_array@[spec_page_index_truncate_1g(i) as int].state == PageState::Mapped1g
-                        || self.page_array@[spec_page_index_truncate_1g(i) as int].state == PageState::Free1g 
-                        || self.page_array@[spec_page_index_truncate_1g(i) as int].state == PageState::Allocated1g
-                        || self.page_array@[spec_page_index_truncate_1g(i) as int].state == PageState::Unavailable1g
-                    ) 
-                    && self.page_array@[i as int].is_io_page == self.page_array@[spec_page_index_truncate_1g(i) as int].is_io_page,
-
-                self.free_pages_4k().len() == old(self).free_pages_4k().len() - index,
-                self.free_pages_2m().len() == old(self).free_pages_2m().len(),
-                self.free_pages_1g().len() == old(self).free_pages_1g().len(),
-                self.allocated_pages_4k() =~= old(self).allocated_pages_4k(),
-                self.allocated_pages_2m() =~= old(self).allocated_pages_2m(),
-                self.allocated_pages_1g() =~= old(self).allocated_pages_1g(),
-                forall|p: PagePtr|
-                    self.page_is_mapped(p) ==> self.page_mappings(p) =~= old(
-                        self,
-                    ).page_mappings(p) && self.page_io_mappings(p) =~= old(self).page_io_mappings(p),
-                self.container_map_2m@ =~= old(self).container_map_2m@,
-                self.container_map_1g@ =~= old(self).container_map_1g@,
-                self.container_map_4k@ =~= old(self).container_map_4k@,
         {
-            proof{
-                seq_remove_lemma::<PagePtr>();
-                seq_remove_lemma_2::<PagePtr>();
-                self.free_pages_4k.unique_implys_no_duplicates();
-                seq_update_lemma::<Page>();
-                page_ptr_lemma1();
-                page_ptr_2m_lemma();
-                page_ptr_1g_lemma();
-                page_index_lemma();
-                page_ptr_page_index_truncate_lemma();
-                assert(self.free_pages_4k@.len() == old(self).free_pages_4k().len() - index) by {self.free_pages_4k@.unique_seq_to_set();}
-            }
             let node_ref = self.page_array.get(target_page_idx + index).rev_pointer;
             let page_index = target_page_idx + index;
-            assert(self.page_array@[target_page_idx + index].state == PageState::Free4k);
-            assert(self.allocated_pages_4k@.contains(page_index2page_ptr(page_index)) == false);
-            assert(self.allocated_pages_2m@.contains(page_index2page_ptr(page_index)) == false);
-            assert(self.allocated_pages_1g@.contains(page_index2page_ptr(page_index)) == false);
             self.free_pages_4k.remove(node_ref, Ghost(page_index2page_ptr(page_index)));
-            assert(self.free_pages_4k().len() == old(self).free_pages_4k().len() - index - 1) by {
-                self.free_pages_4k.unique_implys_no_duplicates();
-                self.free_pages_4k@.unique_seq_to_set();
-            }
             self.page_array.set(target_page_idx + index, 
                 Page {
                         addr: page_index2page_ptr(target_page_idx + index),
@@ -2648,33 +1914,9 @@ impl PageAllocator {
                         io_mappings: Ghost(Set::<(IOid, VAddr)>::empty()),
                         });
             let tracked page_perm = self.page_perms_4k.borrow_mut().tracked_remove(page_index2page_ptr(page_index));
-            proof{
-                assert(page_perm.is_init());
-                assert(page_perm.addr() == page_index2page_ptr(page_index));
-                let old = merged_4k_page_perms@;
-                merged_4k_page_perms.borrow_mut().tracked_insert(index, page_perm);
-                // assert(merged_4k_page_perms@.dom().contains(page_index2page_ptr(page_index)));
-                assert((target_page_idx + index) as usize == page_index);
-                assert(page_index2page_ptr((target_page_idx + index) as usize) == page_index2page_ptr(page_index));
-                assert(merged_4k_page_perms@.dom() =~= old.dom().insert(index));
-            }
         }
 
-        proof{
-            seq_update_lemma::<Page>();
-            page_ptr_lemma1();
-            page_ptr_2m_lemma();
-            page_ptr_1g_lemma();
-            page_index_lemma();
-            page_ptr_page_index_truncate_lemma();
-        }
         let page_perm_2m = merge_4k_pages_to_2m_page(target_page_idx, merged_4k_page_perms);
-        proof{
-            self.page_perms_2m.borrow_mut().tracked_insert(page_index2page_ptr(target_page_idx), page_perm_2m.get());
-            assert(self.free_pages_2m.len() < NUM_PAGES && self.free_pages_2m().len() == self.free_pages_2m@.len()) by {
-                self.free_pages_2m.unique_implys_no_duplicates();
-                self.free_pages_2m@.unique_seq_to_set();};
-        }
         let node_ref = self.free_pages_2m.push(&page_index2page_ptr(target_page_idx));
         self.page_array.set(target_page_idx, 
             Page {
@@ -2687,49 +1929,6 @@ impl PageAllocator {
                     mappings: Ghost(Set::<(Pcid, VAddr)>::empty()),
                     io_mappings: Ghost(Set::<(IOid, VAddr)>::empty()),
                     });
-        proof{
-            seq_push_unique_lemma::<PagePtr>();
-            seq_push_lemma::<PagePtr>();
-            assert(self.free_pages_2m().len() == old(self).free_pages_2m().len() + 1) by {
-                self.free_pages_2m.unique_implys_no_duplicates();
-                self.free_pages_2m@.unique_seq_to_set();
-            }
-        }
-        
-        assert(self.page_array_wf());
-        assert(self.free_pages_4k_wf());
-        assert(self.free_pages_2m_wf()) by {
-            assert(self.free_pages_2m.wf());
-            assert( self.free_pages_2m.unique());
-            assert( forall|i: int|
-            #![trigger self.free_pages_2m@.contains(self.page_array@[i].addr)]
-            #![trigger self.page_array@[i].is_io_page]
-            #![trigger self.page_array@[i].rev_pointer]
-            0 <= i < NUM_PAGES && self.page_array@[i].state == PageState::Free2m
-                ==> self.free_pages_2m@.contains(self.page_array@[i].addr)
-                && self.free_pages_2m.get_node_ref(self.page_array@[i].addr ) == 
-                    self.page_array@[i].rev_pointer
-                && self.page_array@[i].is_io_page == false);
-        assert( forall|page_ptr: PagePtr|
-            #![trigger page_ptr_2m_valid(page_ptr)]
-            #![trigger self.page_array@[page_ptr2page_index(page_ptr) as int].state]
-            self.free_pages_2m@.contains(page_ptr) ==> page_ptr_2m_valid(page_ptr)
-                && self.page_array@[page_ptr2page_index(page_ptr) as int].state
-                == PageState::Free2m);
-        };
-        assert(self.free_pages_1g_wf());
-        assert(self.allocated_pages_4k_wf());
-        assert(self.allocated_pages_2m_wf());
-        assert( self.allocated_pages_1g_wf());
-        assert(self.mapped_pages_4k_wf());
-        assert(self.mapped_pages_2m_wf());
-        assert(self.mapped_pages_1g_wf());
-        assert(self.merged_pages_wf());
-        assert(self.perm_wf());
-        assert( self.container_wf());
-        assert(self.mapped_pages_have_reference_counter());
-        assert(self.hugepages_wf());
-
     }
 
     pub fn split_2m_to_4k(&mut self, target_page_idx: usize)

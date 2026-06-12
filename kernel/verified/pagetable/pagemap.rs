@@ -25,29 +25,8 @@ impl PageMap {
             forall|i: int| #![trigger self@[i].is_empty()] 0 <= i < 512 ==> self@[i].is_empty(),
     {
         for i in 0..512
-            invariant
-                0 <= i <= 512,
-                self.ar.wf(),
-                self.spec_seq@.len() == 512,
-                forall|j: int|
-                    #![trigger usize2page_entry(self.ar@[j])]
-                    0 <= j < i ==> (usize2page_entry(self.ar@[j]) =~= self.spec_seq@[j]),
-                forall|j: int|
-                    #![trigger self.ar@[j]]
-                    0 <= j < i ==> (usize2page_entry(self.ar@[j]).is_empty() <==> self.ar@[j] == 0),
-                forall|j: int|
-                    #![trigger self.ar@[j]]
-                    0 <= j < i ==> usize2page_entry(self.ar@[j]).is_empty(),
-                forall|j: int| #![trigger self@[j].is_empty()] 0 <= j < i ==> self@[j].is_empty(),
         {
-            let ghost_view = Ghost(self@);
             self.ar.set(i, 0usize);
-            assert(self@ == ghost_view);
-            proof {
-                zero_leads_is_empty_page_entry();
-                assert(usize2page_entry(0usize).is_empty());
-                self.spec_seq@ = self.spec_seq@.update(i as int, usize2page_entry(0usize));
-            }
         }
     }
 
@@ -95,26 +74,10 @@ impl PageMap {
     {
         if value.perm.present == false {
             self.ar.set(index, 0usize);
-            proof {
-                zero_leads_is_empty_page_entry();
-                self.spec_seq@ = self.spec_seq@.update(index as int, usize2page_entry(0usize));
-            }
             return ;
         } else {
             let u = page_entry2usize(&value);
             self.ar.set(index, u);
-
-            assert(usize2present(u) == value.perm.present);
-            assert(usize2present(u) == true);
-            assert(u != 0) by (bit_vector)
-                requires
-                    (u & 0x1u64 as usize) != 0 == true,
-            ;
-
-            proof {
-                self.spec_seq@ = self.spec_seq@.update(index as int, value);
-            }
-
             return ;
         }
     }

@@ -1074,7 +1074,6 @@ impl ProcessManager {
                     c_ptr,
                 ).subtree_set@.contains(c_ptr) == false,
     {
-        container_subtree_inv(self.root_container, self.container_perms@)
     }
 
     pub proof fn container_inv(&self)
@@ -1128,13 +1127,6 @@ impl ProcessManager {
                     && self.get_thread(self.get_endpoint(e_ptr).queue@[i]).state
                     == ThreadState::BLOCKED,
     {
-        assert(
-            forall|e_ptr: EndpointPtr, i: int|
-                #![trigger self.get_endpoint(e_ptr).queue@[i]]
-                self.endpoint_dom().contains(e_ptr) && 0 <= i < self.get_endpoint(e_ptr).queue.len()
-                ==> 
-                self.get_endpoint(e_ptr).queue@.contains(self.get_endpoint(e_ptr).queue@[i])
-        );
     }
 
     pub proof fn container_owned_procs_disjoint_inv(&self)
@@ -1148,19 +1140,6 @@ impl ProcessManager {
                     self.get_container(c_ptr_j).owned_procs@,
                 ),
     {
-        assert(forall|c_ptr_i: ContainerPtr, i: int, c_ptr_j: ContainerPtr, j: int|
-            #![auto]
-            self.container_dom().contains(c_ptr_i) && self.container_dom().contains(c_ptr_j)
-                && c_ptr_i != c_ptr_j && 0 <= i < self.get_container(c_ptr_i).owned_procs@.len()
-                && 0 <= j < self.get_container(c_ptr_j).owned_procs@.len() ==> self.get_container(
-                c_ptr_i,
-            ).owned_procs@.contains(self.get_container(c_ptr_i).owned_procs@[i])
-                && self.get_container(c_ptr_j).owned_procs@.contains(
-                self.get_container(c_ptr_j).owned_procs@[j],
-            ) && self.get_proc(self.get_container(c_ptr_i).owned_procs@[i]).owning_container
-                == c_ptr_i && self.get_proc(
-                self.get_container(c_ptr_j).owned_procs@[j],
-            ).owning_container == c_ptr_j);
     }
 
     pub proof fn container_owned_threads_disjoint_inv(&self)
@@ -1208,7 +1187,6 @@ impl ProcessManager {
                     self.get_container(c_ptr_j).subtree_set@.insert(c_ptr_j),
                 ),
     {
-        container_subtree_disjoint_inv(self.root_container, self.container_perms@);
     }
 
     pub proof fn cpu_inv(&self)
@@ -1336,13 +1314,6 @@ impl ProcessManager {
                 ==>
             self.get_container(self.get_proc(proc_ptr).owning_container).root_process.unwrap() == proc_ptr,
     {
-        assert(self.container_dom().contains(self.get_proc(proc_ptr).owning_container));
-        proc_tree_wf_imply_root_depth(
-            self.get_container(self.get_proc(proc_ptr).owning_container).root_process.unwrap(),
-            self.get_container(self.get_proc(proc_ptr).owning_container).owned_procs@.to_set(),
-            self.process_perms@,
-        );
-        assert(self.get_container(self.get_proc(proc_ptr).owning_container).owned_procs@.to_set().contains(proc_ptr));
     }
     pub proof fn same_or_deeper_depth_imply_none_ancestor(&self, ancestor_ptr: ContainerPtr, child_ptr: ContainerPtr)
         requires
@@ -1353,13 +1324,6 @@ impl ProcessManager {
         ensures
             self.get_container(ancestor_ptr).subtree_set@.contains(child_ptr) == false,
     {
-        broadcast use ProcessManager::reveal_process_manager_wf;
-        crate::process_manager::container_tree::same_or_deeper_depth_imply_none_ancestor(
-            self.root_container,
-            self.container_perms@,
-            ancestor_ptr,
-            child_ptr,
-        )
     }
 }
 

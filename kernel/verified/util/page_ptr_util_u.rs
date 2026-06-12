@@ -49,9 +49,6 @@ pub fn page_index2page_ptr(i: usize) -> (ret: usize)
     ensures
         ret == spec_page_index2page_ptr(i),
 {
-    proof {
-        lemma_usize_u64(MAX_USIZE);
-    }
     i * 4096usize
 }
 
@@ -117,11 +114,6 @@ pub fn va_4k_range_valid(va: usize, len: usize) -> (ret: bool)
         spec_va_4k_range_valid(va, len) == ret,
 {
     for idx in iter: 0..len
-        invariant
-            va_4k_valid(va),
-            forall|i: usize|
-                #![trigger spec_va_add_range(va, i)]
-                0 <= i < idx ==> spec_va_4k_valid(spec_va_add_range(va, i)),
     {
         if va_4k_valid(va_add_range(va, idx)) == false {
             return false;
@@ -213,7 +205,6 @@ pub fn v2l1index(va: usize) -> (ret: L1Index)
         ret == spec_v2l1index(va),
         ret <= 0x1ff,
 {
-    assert((va as u64 >> 12u64 & 0x1ffu64) as usize <= 0x1ff) by (bit_vector);
     (va as u64 >> 12u64 & 0x1ffu64) as usize
 }
 
@@ -225,7 +216,6 @@ pub fn v2l2index(va: usize) -> (ret: L2Index)
         ret == spec_v2l2index(va),
         ret <= 0x1ff,
 {
-    assert((va as u64 >> 21u64 & 0x1ffu64) as usize <= 0x1ff) by (bit_vector);
     (va as u64 >> 21u64 & 0x1ffu64) as usize
 }
 
@@ -237,7 +227,6 @@ pub fn v2l3index(va: usize) -> (ret: L3Index)
         ret == spec_v2l3index(va),
         ret <= 0x1ff,
 {
-    assert((va as u64 >> 30u64 & 0x1ffu64) as usize <= 0x1ff) by (bit_vector);
     (va as u64 >> 30u64 & 0x1ffu64) as usize
 }
 
@@ -249,7 +238,6 @@ pub fn v2l4index(va: usize) -> (ret: L4Index)
         ret == spec_v2l4index(va),
         KERNEL_MEM_END_L4INDEX <= ret <= 0x1ff,
 {
-    assert((va as u64 >> 39u64 & 0x1ffu64) as usize <= 0x1ff) by (bit_vector);
     (va as u64 >> 39u64 & 0x1ffu64) as usize
 }
 

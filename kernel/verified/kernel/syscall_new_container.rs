@@ -239,11 +239,6 @@ impl Kernel {
         let pcid = self.proc_man.get_proc(proc_ptr).pcid;
         let container_ptr = self.proc_man.get_thread(thread_ptr).owning_container;
 
-        proof {
-            self.proc_man.thread_inv();
-            assert(self.proc_man.get_proc(proc_ptr).owning_container == container_ptr);
-        }
-
         if self.proc_man.get_proc(proc_ptr).owned_threads.len() >= MAX_NUM_THREADS_PER_PROC {
             return SyscallReturnStruct::NoSwitchNew(RetValueType::Error);
         }
@@ -291,15 +286,12 @@ impl Kernel {
         if init_quota.mem_4k < 3 * va_range.len {
             return SyscallReturnStruct::NoSwitchNew(RetValueType::Error);
         }
-        // let (page_ptr_1,mut page_perm_1) = self.page_alloc.alloc_page_4k();
 
         let (page_ptr_2, page_perm_2) = self.page_alloc.alloc_page_4k_for_new_container();
         let (page_ptr_3, page_perm_3) = self.page_alloc.alloc_page_4k();
         let (page_ptr_4, page_perm_4) = self.page_alloc.alloc_page_4k();
 
-        // let (page_map_ptr, mut page_map_perm) = page_perm_to_page_map(page_ptr_1,page_perm_1);
         let new_pcid = self.mem_man.alloc_page_table(page_ptr_3);
-        assert(self.proc_man == old(self).proc_man);
         self.proc_man.new_container_with_endpoint(
             thread_ptr,
             endpoint_index,
@@ -314,30 +306,6 @@ impl Kernel {
             page_perm_4,
         );
 
-        assert(self.mem_man.wf());
-        assert(self.page_alloc.wf());
-        assert(self.proc_man.wf());
-        assert(self.memory_wf()) by {
-            assert(self.mem_man.page_closure().disjoint(self.proc_man.page_closure()));
-            assert(self.mem_man.page_closure() + self.proc_man.page_closure()
-                == self.page_alloc.allocated_pages_4k());
-            assert(self.page_alloc.mapped_pages_2m() =~= Set::empty());
-            assert(self.page_alloc.mapped_pages_1g() =~= Set::empty());
-            assert(self.page_alloc.allocated_pages_2m() =~= Set::empty());
-            assert(self.page_alloc.allocated_pages_1g() =~= Set::empty());
-            assert(self.page_alloc.container_map_4k@.dom() =~= self.proc_man.container_dom());
-        };
-        assert(self.mapping_wf());
-        assert(self.pcid_ioid_wf());
-        assert(self.page_mapping_wf());
-
-        proof {
-            old(self).proc_man.page_closure_inv();
-            set_lemma::<usize>();
-        }
-        assert(old(self).page_alloc.allocated_pages_4k().contains(page_ptr_2) == false);
-        assert(old(self).proc_man.page_closure().contains(page_ptr_2) == false);
-        assert(old(self).container_dom().contains(page_ptr_2) == false);
         self.range_create_and_share_mapping(proc_ptr, &va_range, page_ptr_3, &va_range);
 
         return SyscallReturnStruct::NoSwitchNew(

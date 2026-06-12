@@ -161,46 +161,18 @@ impl Kernel {
         let container_ptr = self.proc_man.get_proc(proc_ptr).owning_container;
         let old_quota_4k = self.proc_man.get_container(container_ptr).quota.mem_4k;
         let target_pcid = self.proc_man.get_proc(proc_ptr).pcid;
-        proof {
-            va_lemma();
-        }
         let (l4i, l3i, l2i, l1i) = va2index(va);
         let mut l4_entry_op = self.mem_man.get_pagetable_l4_entry(target_pcid, l4i);
         if l4_entry_op.is_none() {
-            proof {
-                self.page_alloc.free_pages_are_not_mapped();
-            }
             let (new_page_ptr, new_page_perm) = self.page_alloc.alloc_page_4k();
             let (page_map_ptr, page_map_perm) = page_perm_to_page_map(new_page_ptr, new_page_perm);
             self.mem_man.create_pagetable_l4_entry(target_pcid, l4i, page_map_ptr, page_map_perm);
-            assert(self.wf()) by {
-                assert(self.mem_man.wf());
-                assert(self.page_alloc.wf());
-                assert(self.proc_man.wf());
-                assert(self.memory_wf()) by {
-                    assert(self.mem_man.page_closure().disjoint(self.proc_man.page_closure()));
-                    assert(self.mem_man.page_closure() + self.proc_man.page_closure()
-                        == self.page_alloc.allocated_pages_4k());
-                    assert(self.page_alloc.mapped_pages_2m() =~= Set::empty());
-                    assert(self.page_alloc.mapped_pages_1g() =~= Set::empty());
-                    assert(self.page_alloc.allocated_pages_2m() =~= Set::empty());
-                    assert(self.page_alloc.allocated_pages_1g() =~= Set::empty());
-                    assert(self.page_alloc.container_map_4k@.dom()
-                        =~= self.proc_man.container_dom());
-                };
-                assert(self.mapping_wf());
-                assert(self.pcid_ioid_wf());
-            };
             ret = ret + 1;
             l4_entry_op = self.mem_man.get_pagetable_l4_entry(target_pcid, l4i);
         }
-        assert(l4_entry_op.is_Some());
         let l4_entry = l4_entry_op.unwrap();
         let mut l3_entry_op = self.mem_man.get_pagetable_l3_entry(target_pcid, l4i, l3i, &l4_entry);
         if l3_entry_op.is_none() {
-            proof {
-                self.page_alloc.free_pages_are_not_mapped();
-            }
             let (new_page_ptr, new_page_perm) = self.page_alloc.alloc_page_4k();
             let (page_map_ptr, page_map_perm) = page_perm_to_page_map(new_page_ptr, new_page_perm);
             self.mem_man.create_pagetable_l3_entry(
@@ -211,24 +183,6 @@ impl Kernel {
                 page_map_ptr,
                 page_map_perm,
             );
-            assert(self.wf()) by {
-                assert(self.mem_man.wf());
-                assert(self.page_alloc.wf());
-                assert(self.proc_man.wf());
-                assert(self.memory_wf()) by {
-                    assert(self.mem_man.page_closure().disjoint(self.proc_man.page_closure()));
-                    assert(self.mem_man.page_closure() + self.proc_man.page_closure()
-                        == self.page_alloc.allocated_pages_4k());
-                    assert(self.page_alloc.mapped_pages_2m() =~= Set::empty());
-                    assert(self.page_alloc.mapped_pages_1g() =~= Set::empty());
-                    assert(self.page_alloc.allocated_pages_2m() =~= Set::empty());
-                    assert(self.page_alloc.allocated_pages_1g() =~= Set::empty());
-                    assert(self.page_alloc.container_map_4k@.dom()
-                        =~= self.proc_man.container_dom());
-                };
-                assert(self.mapping_wf());
-                assert(self.pcid_ioid_wf());
-            };
             ret = ret + 1;
             l3_entry_op = self.mem_man.get_pagetable_l3_entry(target_pcid, l4i, l3i, &l4_entry);
         }
@@ -256,47 +210,11 @@ impl Kernel {
                 page_map_ptr,
                 page_map_perm,
             );
-            assert(self.wf()) by {
-                assert(self.mem_man.wf());
-                assert(self.page_alloc.wf());
-                assert(self.proc_man.wf());
-                assert(self.memory_wf()) by {
-                    assert(self.mem_man.page_closure().disjoint(self.proc_man.page_closure()));
-                    assert(self.mem_man.page_closure() + self.proc_man.page_closure()
-                        == self.page_alloc.allocated_pages_4k());
-                    assert(self.page_alloc.mapped_pages_2m() =~= Set::empty());
-                    assert(self.page_alloc.mapped_pages_1g() =~= Set::empty());
-                    assert(self.page_alloc.allocated_pages_2m() =~= Set::empty());
-                    assert(self.page_alloc.allocated_pages_1g() =~= Set::empty());
-                    assert(self.page_alloc.container_map_4k@.dom()
-                        =~= self.proc_man.container_dom());
-                };
-                assert(self.mapping_wf());
-                assert(self.pcid_ioid_wf());
-            };
             ret = ret + 1;
             l2_entry_op =
             self.mem_man.get_pagetable_l2_entry(target_pcid, l4i, l3i, l2i, &l3_entry);
         }
         self.proc_man.set_container_mem_quota_mem_4k(container_ptr, old_quota_4k - ret);
-
-        assert(self.wf()) by {
-            assert(self.mem_man.wf());
-            assert(self.page_alloc.wf());
-            assert(self.proc_man.wf());
-            assert(self.memory_wf()) by {
-                assert(self.mem_man.page_closure().disjoint(self.proc_man.page_closure()));
-                assert(self.mem_man.page_closure() + self.proc_man.page_closure()
-                    == self.page_alloc.allocated_pages_4k());
-                assert(self.page_alloc.mapped_pages_2m() =~= Set::empty());
-                assert(self.page_alloc.mapped_pages_1g() =~= Set::empty());
-                assert(self.page_alloc.allocated_pages_2m() =~= Set::empty());
-                assert(self.page_alloc.allocated_pages_1g() =~= Set::empty());
-                assert(self.page_alloc.container_map_4k@.dom() =~= self.proc_man.container_dom());
-            };
-            assert(self.mapping_wf());
-            assert(self.pcid_ioid_wf());
-        };
 
         (ret, l2_entry_op.unwrap().addr)
     }
@@ -432,40 +350,15 @@ impl Kernel {
         let container_ptr = self.proc_man.get_proc(proc_ptr).owning_container;
         let old_quota_4k = self.proc_man.get_container(container_ptr).quota.mem_4k;
         let target_ioid = self.proc_man.get_proc(proc_ptr).ioid.unwrap();
-        proof {
-            va_lemma();
-        }
         let (l4i, l3i, l2i, l1i) = va2index(va);
         let mut l4_entry_op = self.mem_man.get_iommu_table_l4_entry(target_ioid, l4i);
         if l4_entry_op.is_none() {
-            proof {
-                self.page_alloc.free_pages_are_not_mapped();
-            }
             let (new_page_ptr, new_page_perm) = self.page_alloc.alloc_page_4k();
             let (page_map_ptr, page_map_perm) = page_perm_to_page_map(new_page_ptr, new_page_perm);
             self.mem_man.create_iommu_table_l4_entry(target_ioid, l4i, page_map_ptr, page_map_perm);
-            assert(self.wf()) by {
-                assert(self.mem_man.wf());
-                assert(self.page_alloc.wf());
-                assert(self.proc_man.wf());
-                assert(self.memory_wf()) by {
-                    assert(self.mem_man.page_closure().disjoint(self.proc_man.page_closure()));
-                    assert(self.mem_man.page_closure() + self.proc_man.page_closure()
-                        == self.page_alloc.allocated_pages_4k());
-                    assert(self.page_alloc.mapped_pages_2m() =~= Set::empty());
-                    assert(self.page_alloc.mapped_pages_1g() =~= Set::empty());
-                    assert(self.page_alloc.allocated_pages_2m() =~= Set::empty());
-                    assert(self.page_alloc.allocated_pages_1g() =~= Set::empty());
-                    assert(self.page_alloc.container_map_4k@.dom()
-                        =~= self.proc_man.container_dom());
-                };
-                assert(self.mapping_wf());
-                assert(self.pcid_ioid_wf());
-            };
             ret = ret + 1;
             l4_entry_op = self.mem_man.get_iommu_table_l4_entry(target_ioid, l4i);
         }
-        assert(l4_entry_op.is_Some());
         let l4_entry = l4_entry_op.unwrap();
         let mut l3_entry_op = self.mem_man.get_iommu_table_l3_entry(
             target_ioid,
@@ -474,9 +367,6 @@ impl Kernel {
             &l4_entry,
         );
         if l3_entry_op.is_none() {
-            proof {
-                self.page_alloc.free_pages_are_not_mapped();
-            }
             let (new_page_ptr, new_page_perm) = self.page_alloc.alloc_page_4k();
             let (page_map_ptr, page_map_perm) = page_perm_to_page_map(new_page_ptr, new_page_perm);
             self.mem_man.create_iommu_table_l3_entry(
@@ -487,24 +377,6 @@ impl Kernel {
                 page_map_ptr,
                 page_map_perm,
             );
-            assert(self.wf()) by {
-                assert(self.mem_man.wf());
-                assert(self.page_alloc.wf());
-                assert(self.proc_man.wf());
-                assert(self.memory_wf()) by {
-                    assert(self.mem_man.page_closure().disjoint(self.proc_man.page_closure()));
-                    assert(self.mem_man.page_closure() + self.proc_man.page_closure()
-                        == self.page_alloc.allocated_pages_4k());
-                    assert(self.page_alloc.mapped_pages_2m() =~= Set::empty());
-                    assert(self.page_alloc.mapped_pages_1g() =~= Set::empty());
-                    assert(self.page_alloc.allocated_pages_2m() =~= Set::empty());
-                    assert(self.page_alloc.allocated_pages_1g() =~= Set::empty());
-                    assert(self.page_alloc.container_map_4k@.dom()
-                        =~= self.proc_man.container_dom());
-                };
-                assert(self.mapping_wf());
-                assert(self.pcid_ioid_wf());
-            };
             ret = ret + 1;
             l3_entry_op = self.mem_man.get_iommu_table_l3_entry(target_ioid, l4i, l3i, &l4_entry);
         }
@@ -518,9 +390,6 @@ impl Kernel {
         );
 
         if l2_entry_op.is_none() {
-            proof {
-                self.page_alloc.free_pages_are_not_mapped();
-            }
             let (new_page_ptr, new_page_perm) = self.page_alloc.alloc_page_4k();
             let (page_map_ptr, page_map_perm) = page_perm_to_page_map(new_page_ptr, new_page_perm);
             self.mem_man.create_iommu_table_l2_entry(
@@ -532,47 +401,11 @@ impl Kernel {
                 page_map_ptr,
                 page_map_perm,
             );
-            assert(self.wf()) by {
-                assert(self.mem_man.wf());
-                assert(self.page_alloc.wf());
-                assert(self.proc_man.wf());
-                assert(self.memory_wf()) by {
-                    assert(self.mem_man.page_closure().disjoint(self.proc_man.page_closure()));
-                    assert(self.mem_man.page_closure() + self.proc_man.page_closure()
-                        == self.page_alloc.allocated_pages_4k());
-                    assert(self.page_alloc.mapped_pages_2m() =~= Set::empty());
-                    assert(self.page_alloc.mapped_pages_1g() =~= Set::empty());
-                    assert(self.page_alloc.allocated_pages_2m() =~= Set::empty());
-                    assert(self.page_alloc.allocated_pages_1g() =~= Set::empty());
-                    assert(self.page_alloc.container_map_4k@.dom()
-                        =~= self.proc_man.container_dom());
-                };
-                assert(self.mapping_wf());
-                assert(self.pcid_ioid_wf());
-            };
             ret = ret + 1;
             l2_entry_op =
             self.mem_man.get_iommu_table_l2_entry(target_ioid, l4i, l3i, l2i, &l3_entry);
         }
         self.proc_man.set_container_mem_quota_mem_4k(container_ptr, old_quota_4k - ret);
-
-        assert(self.wf()) by {
-            assert(self.mem_man.wf());
-            assert(self.page_alloc.wf());
-            assert(self.proc_man.wf());
-            assert(self.memory_wf()) by {
-                assert(self.mem_man.page_closure().disjoint(self.proc_man.page_closure()));
-                assert(self.mem_man.page_closure() + self.proc_man.page_closure()
-                    == self.page_alloc.allocated_pages_4k());
-                assert(self.page_alloc.mapped_pages_2m() =~= Set::empty());
-                assert(self.page_alloc.mapped_pages_1g() =~= Set::empty());
-                assert(self.page_alloc.allocated_pages_2m() =~= Set::empty());
-                assert(self.page_alloc.allocated_pages_1g() =~= Set::empty());
-                assert(self.page_alloc.container_map_4k@.dom() =~= self.proc_man.container_dom());
-            };
-            assert(self.mapping_wf());
-            assert(self.pcid_ioid_wf());
-        };
 
         (ret, l2_entry_op.unwrap().addr)
     }
@@ -594,16 +427,6 @@ impl Kernel {
                 ) == false),
     {
         for i in 0..va_range.len
-            invariant
-                0 <= i <= va_range.len,
-                self.wf(),
-                self.proc_dom().contains(target_proc_ptr),
-                va_range.wf(),
-                forall|j: int|
-                    #![auto]
-                    0 <= j < i ==> self.get_address_space(target_proc_ptr).dom().contains(
-                        va_range@[j],
-                    ) == false,
         {
             let target_pcid = self.proc_man.get_proc(target_proc_ptr).pcid;
             if self.mem_man.resolve_pagetable_mapping(target_pcid, va_range.index(i)).is_some() {

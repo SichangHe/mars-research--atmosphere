@@ -188,64 +188,11 @@ impl ProcessManager {
                 container_ptr,
             ).quota.spec_set_mem_4k(new_quota),
     {
-        broadcast use ProcessManager::reveal_process_manager_wf;
 
         let mut container_perm = Tracked(
             self.container_perms.borrow_mut().tracked_remove(container_ptr),
         );
         container_set_quota_mem_4k(container_ptr, &mut container_perm, new_quota);
-        proof {
-            self.container_perms.borrow_mut().tracked_insert(container_ptr, container_perm.get());
-        }
-
-        assert(self.container_perms_wf());
-        assert(self.container_tree_wf()) by {
-            container_no_change_to_tree_fields_imply_wf(
-                self.root_container,
-                old(self).container_perms@,
-                self.container_perms@,
-            );
-        };
-        assert(self.container_fields_wf());
-        assert(self.proc_perms_wf());
-        assert(self.process_trees_wf()) by {
-            // seq_to_set_lemma::<ProcPtr>();
-            assert forall|c_ptr: ContainerPtr|
-                #![trigger self.container_dom().contains(c_ptr)]
-                #![trigger self.process_tree_wf(c_ptr)]
-                self.container_dom().contains(c_ptr) && self.get_container(
-                    c_ptr,
-                ).root_process.is_Some() implies self.process_tree_wf(c_ptr) by {
-                process_no_change_to_trees_fields_imply_wf(
-                    self.get_container(c_ptr).root_process.unwrap(),
-                    self.get_container(c_ptr).owned_procs@.to_set(),
-                    old(self).process_perms@,
-                    self.process_perms@,
-                );
-            };
-        };
-        assert(self.process_fields_wf()) by {
-            assert(forall|p_ptr: ProcPtr|
-                #![trigger self.get_proc(p_ptr)]
-                self.proc_dom().contains(p_ptr) ==> self.get_proc(p_ptr) =~= old(self).get_proc(
-                    p_ptr,
-                ));
-        };
-        assert(self.cpus_wf());
-        assert(self.container_cpu_wf());
-        assert(self.memory_disjoint());
-        assert(self.container_perms_wf());
-        assert(self.processes_container_wf());
-        assert(self.threads_process_wf());
-        assert(self.threads_perms_wf());
-        assert(self.endpoint_perms_wf());
-        assert(self.threads_endpoint_descriptors_wf());
-        assert(self.endpoints_queue_wf());
-        assert(self.endpoints_container_wf());
-        assert(self.schedulers_wf());
-        assert(self.pcid_ioid_wf());
-        assert(self.threads_cpu_wf());
-        assert(self.threads_container_wf());
 
     }
 
@@ -558,10 +505,8 @@ impl ProcessManager {
                 endpoint_ptr,
             ).queue@[0],
     {
-        broadcast use ProcessManager::reveal_process_manager_wf;
         
         let thread_ptr = self.get_endpoint(endpoint_ptr).queue.get_head();
-        assert(self.get_endpoint(endpoint_ptr).queue@.contains(thread_ptr));
         let thread_ref = self.get_thread(thread_ptr);
         let proc_ref = self.get_proc(thread_ref.owning_proc);
         let new_pcid = proc_ref.pcid;
@@ -572,10 +517,6 @@ impl ProcessManager {
             self.endpoint_perms.borrow_mut().tracked_remove(endpoint_ptr),
         );
         let (ret_thread_ptr, sll) = endpoint_pop_head(endpoint_ptr, &mut endpoint_perm);
-        assert(thread_ptr == ret_thread_ptr);
-        proof {
-            self.endpoint_perms.borrow_mut().tracked_insert(endpoint_ptr, endpoint_perm.get());
-        }
 
         let mut thread_perm = Tracked(self.thread_perms.borrow_mut().tracked_remove(thread_ptr));
         thread_set_blocking_endpoint_endpoint_ref_scheduler_ref_state_and_ipc_payload(
@@ -589,9 +530,7 @@ impl ProcessManager {
             None,
         );
         thread_set_current_cpu(thread_ptr, &mut thread_perm, Some(cpu_id));
-        proof {
-            self.thread_perms.borrow_mut().tracked_insert(thread_ptr, thread_perm.get());
-        }
+
         self.cpu_list.set(
             cpu_id,
             Cpu {
@@ -600,57 +539,6 @@ impl ProcessManager {
                 current_thread: Some(thread_ptr),
             },
         );
-
-        assert(self.container_perms_wf());
-        assert(self.container_tree_wf()) by {
-            container_no_change_to_tree_fields_imply_wf(
-                self.root_container,
-                old(self).container_perms@,
-                self.container_perms@,
-            );
-        };
-        assert(self.container_fields_wf());
-        assert(self.proc_perms_wf());
-        assert(self.process_trees_wf()) by {
-            assert forall|c_ptr: ContainerPtr|
-                #![trigger self.container_dom().contains(c_ptr)]
-                #![trigger self.process_tree_wf(c_ptr)]
-                self.container_dom().contains(c_ptr) && self.get_container(
-                    c_ptr,
-                ).root_process.is_Some() implies self.process_tree_wf(c_ptr) by {
-                process_no_change_to_trees_fields_imply_wf(
-                    self.get_container(c_ptr).root_process.unwrap(),
-                    self.get_container(c_ptr).owned_procs@.to_set(),
-                    old(self).process_perms@,
-                    self.process_perms@,
-                );
-            };
-        };
-        assert(self.process_fields_wf()) by {
-            assert(forall|p_ptr: ProcPtr|
-                #![trigger self.get_proc(p_ptr)]
-                self.proc_dom().contains(p_ptr) ==> self.get_proc(p_ptr) =~= old(self).get_proc(
-                    p_ptr,
-                ));
-        };
-        assert(self.cpus_wf());
-        assert(self.container_cpu_wf());
-        assert(self.memory_disjoint());
-        assert(self.container_perms_wf());
-        assert(self.processes_container_wf());
-        assert(self.threads_process_wf());
-        assert(self.threads_perms_wf());
-        assert(self.endpoint_perms_wf());
-        assert(self.threads_endpoint_descriptors_wf());
-        assert(self.endpoints_queue_wf()) by {
-            seq_skip_lemma::<ThreadPtr>();
-            old(self).get_endpoint(endpoint_ptr).queue.unique_implys_no_duplicates();
-        };
-        assert(self.endpoints_container_wf());
-        assert(self.schedulers_wf());
-        assert(self.pcid_ioid_wf());
-        assert(self.threads_cpu_wf());
-        assert(self.threads_container_wf());
 
         return ret_value;
     }
@@ -710,20 +598,10 @@ impl ProcessManager {
             self.get_endpoint(endpoint_ptr).rf_counter == old(self).get_endpoint(endpoint_ptr).rf_counter,
             self.get_endpoint(endpoint_ptr).queue_state == old(self).get_endpoint(endpoint_ptr).queue_state,
     {
-        broadcast use ProcessManager::reveal_process_manager_wf;
-        
-        proof {
-            seq_push_lemma::<usize>();
-            seq_push_unique_lemma::<usize>();
-        }
 
         let thread_ptr = self.get_endpoint(endpoint_ptr).queue.get_head();
 
-        assert(self.get_endpoint(endpoint_ptr).queue@.contains(thread_ptr));
         let container_ptr = self.get_thread(thread_ptr).owning_container;
-
-        assert(self.get_endpoint(endpoint_ptr).queue@.contains(self.get_endpoint(endpoint_ptr).queue@[0]));
-        assert(self.get_thread(thread_ptr).state == ThreadState::BLOCKED);
 
         let mut container_perm = Tracked(
             self.container_perms.borrow_mut().tracked_remove(container_ptr),
@@ -733,18 +611,11 @@ impl ProcessManager {
             &mut container_perm,
             &thread_ptr,
         );
-        proof {
-            self.container_perms.borrow_mut().tracked_insert(container_ptr, container_perm.get());
-        }
 
         let mut endpoint_perm = Tracked(
             self.endpoint_perms.borrow_mut().tracked_remove(endpoint_ptr),
         );
         let (ret_thread_ptr, sll) = endpoint_pop_head(endpoint_ptr, &mut endpoint_perm);
-        assert(thread_ptr == ret_thread_ptr);
-        proof {
-            self.endpoint_perms.borrow_mut().tracked_insert(endpoint_ptr, endpoint_perm.get());
-        }
 
         let mut thread_perm = Tracked(self.thread_perms.borrow_mut().tracked_remove(thread_ptr));
         thread_set_blocking_endpoint_endpoint_ref_scheduler_ref_state_and_ipc_payload(
@@ -757,60 +628,6 @@ impl ProcessManager {
             IPCPayLoad::Empty,
             None,
         );
-        proof {
-            self.thread_perms.borrow_mut().tracked_insert(thread_ptr, thread_perm.get());
-        }
-
-        assert(self.container_perms_wf());
-        assert(self.container_tree_wf()) by {
-            container_no_change_to_tree_fields_imply_wf(
-                self.root_container,
-                old(self).container_perms@,
-                self.container_perms@,
-            );
-        };
-        assert(self.container_fields_wf());
-        assert(self.proc_perms_wf());
-        assert(self.process_trees_wf()) by {
-            assert forall|c_ptr: ContainerPtr|
-                #![trigger self.container_dom().contains(c_ptr)]
-                #![trigger self.process_tree_wf(c_ptr)]
-                self.container_dom().contains(c_ptr) && self.get_container(
-                    c_ptr,
-                ).root_process.is_Some() implies self.process_tree_wf(c_ptr) by {
-                process_no_change_to_trees_fields_imply_wf(
-                    self.get_container(c_ptr).root_process.unwrap(),
-                    self.get_container(c_ptr).owned_procs@.to_set(),
-                    old(self).process_perms@,
-                    self.process_perms@,
-                );
-            };
-        };
-        assert(self.process_fields_wf()) by {
-            assert(forall|p_ptr: ProcPtr|
-                #![trigger self.get_proc(p_ptr)]
-                self.proc_dom().contains(p_ptr) ==> self.get_proc(p_ptr) =~= old(self).get_proc(
-                    p_ptr,
-                ));
-        };
-        assert(self.cpus_wf());
-        assert(self.container_cpu_wf());
-        assert(self.memory_disjoint());
-        assert(self.container_perms_wf());
-        assert(self.processes_container_wf());
-        assert(self.threads_process_wf());
-        assert(self.threads_perms_wf());
-        assert(self.endpoint_perms_wf());
-        assert(self.threads_endpoint_descriptors_wf());
-        assert(self.endpoints_queue_wf()) by {
-            seq_skip_lemma::<ThreadPtr>();
-            old(self).get_endpoint(endpoint_ptr).queue.unique_implys_no_duplicates();
-        };
-        assert(self.endpoints_container_wf());
-        assert(self.schedulers_wf());
-        assert(self.pcid_ioid_wf());
-        assert(self.threads_cpu_wf());
-        assert(self.threads_container_wf());
     }
 
     /// Overview:
@@ -894,15 +711,7 @@ impl ProcessManager {
                 ).endpoint_descriptors@[endpoint_index as int].unwrap(),
             ).queue@.push(thread_ptr),
     {
-        broadcast use ProcessManager::reveal_process_manager_wf;
-        
-        proof {
-            old(self).get_endpoint(
-                old(self).get_thread(
-                    thread_ptr,
-                ).endpoint_descriptors@[endpoint_index as int].unwrap(),
-            ).queue.unique_implys_no_duplicates();
-        }
+       
         let endpoint_ptr = self.get_thread(thread_ptr).endpoint_descriptors.get(
             endpoint_index,
         ).unwrap();
@@ -913,9 +722,7 @@ impl ProcessManager {
             self.endpoint_perms.borrow_mut().tracked_remove(endpoint_ptr),
         );
         let sll = endpoint_push(endpoint_ptr, &mut endpoint_perm, thread_ptr);
-        proof {
-            self.endpoint_perms.borrow_mut().tracked_insert(endpoint_ptr, endpoint_perm.get());
-        }
+      
         let mut thread_perm = Tracked(self.thread_perms.borrow_mut().tracked_remove(thread_ptr));
         thread_set_blocking_endpoint_endpoint_ref_scheduler_ref_state_and_ipc_payload(
             thread_ptr,
@@ -927,9 +734,6 @@ impl ProcessManager {
             ipc_payload,
             Some(endpoint_index),
         );
-        proof {
-            self.thread_perms.borrow_mut().tracked_insert(thread_ptr, thread_perm.get());
-        }
 
         self.cpu_list.set(
             cpu_id,
@@ -940,56 +744,6 @@ impl ProcessManager {
             },
         );
 
-        assert(self.container_perms_wf());
-        assert(self.container_tree_wf()) by {
-            container_no_change_to_tree_fields_imply_wf(
-                self.root_container,
-                old(self).container_perms@,
-                self.container_perms@,
-            );
-        };
-        assert(self.container_fields_wf());
-        assert(self.proc_perms_wf());
-        assert(self.process_trees_wf()) by {
-            assert forall|c_ptr: ContainerPtr|
-                #![trigger self.container_dom().contains(c_ptr)]
-                #![trigger self.process_tree_wf(c_ptr)]
-                self.container_dom().contains(c_ptr) && self.get_container(
-                    c_ptr,
-                ).root_process.is_Some() implies self.process_tree_wf(c_ptr) by {
-                process_no_change_to_trees_fields_imply_wf(
-                    self.get_container(c_ptr).root_process.unwrap(),
-                    self.get_container(c_ptr).owned_procs@.to_set(),
-                    old(self).process_perms@,
-                    self.process_perms@,
-                );
-            };
-        };
-        assert(self.process_fields_wf()) by {
-            assert(forall|p_ptr: ProcPtr|
-                #![trigger self.get_proc(p_ptr)]
-                self.proc_dom().contains(p_ptr) ==> self.get_proc(p_ptr) =~= old(self).get_proc(
-                    p_ptr,
-                ));
-        };
-        assert(self.cpus_wf());
-        assert(self.container_cpu_wf());
-        assert(self.memory_disjoint());
-        assert(self.container_perms_wf());
-        assert(self.processes_container_wf());
-        assert(self.threads_process_wf());
-        assert(self.threads_perms_wf());
-        assert(self.endpoint_perms_wf());
-        assert(self.threads_endpoint_descriptors_wf());
-        assert(self.endpoints_queue_wf()) by {
-            seq_push_lemma::<usize>();
-            seq_push_unique_lemma::<usize>();
-        };
-        assert(self.endpoints_container_wf());
-        assert(self.schedulers_wf());
-        assert(self.pcid_ioid_wf());
-        assert(self.threads_cpu_wf());
-        assert(self.threads_container_wf());
     }
 
     pub fn block_running_thread_and_set_trap_frame(
@@ -1074,15 +828,7 @@ impl ProcessManager {
                 ).endpoint_descriptors@[endpoint_index as int].unwrap(),
             ).queue@.push(thread_ptr),
     {
-        broadcast use ProcessManager::reveal_process_manager_wf;
-        
-        proof {
-            old(self).get_endpoint(
-                old(self).get_thread(
-                    thread_ptr,
-                ).endpoint_descriptors@[endpoint_index as int].unwrap(),
-            ).queue.unique_implys_no_duplicates();
-        }
+       
         let endpoint_ptr = self.get_thread(thread_ptr).endpoint_descriptors.get(
             endpoint_index,
         ).unwrap();
@@ -1093,9 +839,7 @@ impl ProcessManager {
             self.endpoint_perms.borrow_mut().tracked_remove(endpoint_ptr),
         );
         let sll = endpoint_push(endpoint_ptr, &mut endpoint_perm, thread_ptr);
-        proof {
-            self.endpoint_perms.borrow_mut().tracked_insert(endpoint_ptr, endpoint_perm.get());
-        }
+      
         let mut thread_perm = Tracked(self.thread_perms.borrow_mut().tracked_remove(thread_ptr));
         thread_set_blocking_endpoint_endpoint_ref_scheduler_ref_state_and_ipc_payload(
             thread_ptr,
@@ -1108,9 +852,6 @@ impl ProcessManager {
             Some(endpoint_index),
         );
         thread_set_trap_frame_fast(thread_ptr, &mut thread_perm, pt_regs);
-        proof {
-            self.thread_perms.borrow_mut().tracked_insert(thread_ptr, thread_perm.get());
-        }
 
         self.cpu_list.set(
             cpu_id,
@@ -1121,73 +862,6 @@ impl ProcessManager {
             },
         );
 
-        assert(self.container_perms_wf());
-        assert(self.container_tree_wf()) by {
-            container_no_change_to_tree_fields_imply_wf(
-                self.root_container,
-                old(self).container_perms@,
-                self.container_perms@,
-            );
-        };
-        assert(self.container_fields_wf());
-        assert(self.proc_perms_wf());
-        assert(self.process_trees_wf()) by {
-            assert forall|c_ptr: ContainerPtr|
-                #![trigger self.container_dom().contains(c_ptr)]
-                #![trigger self.process_tree_wf(c_ptr)]
-                self.container_dom().contains(c_ptr) && self.get_container(
-                    c_ptr,
-                ).root_process.is_Some() implies self.process_tree_wf(c_ptr) by {
-                process_no_change_to_trees_fields_imply_wf(
-                    self.get_container(c_ptr).root_process.unwrap(),
-                    self.get_container(c_ptr).owned_procs@.to_set(),
-                    old(self).process_perms@,
-                    self.process_perms@,
-                );
-            };
-        };
-        assert(self.process_fields_wf()) by {
-            assert(forall|p_ptr: ProcPtr|
-                #![trigger self.get_proc(p_ptr)]
-                self.proc_dom().contains(p_ptr) ==> self.get_proc(p_ptr) =~= old(self).get_proc(
-                    p_ptr,
-                ));
-        };
-        assert(self.cpus_wf());
-        assert(self.container_cpu_wf());
-        assert(self.memory_disjoint());
-        assert(self.container_perms_wf());
-        assert(self.processes_container_wf());
-        assert(self.threads_process_wf());
-        assert(self.threads_perms_wf());
-        assert(self.endpoint_perms_wf());
-        assert(self.threads_endpoint_descriptors_wf());
-        assert(self.endpoints_queue_wf()) by {
-            seq_push_lemma::<usize>();
-            seq_push_unique_lemma::<usize>();
-        };
-        assert(self.endpoints_container_wf());
-        assert(self.schedulers_wf());
-        assert(self.pcid_ioid_wf());
-        assert(self.threads_cpu_wf());
-        assert(self.threads_container_wf()) by {
-            assert(forall|c_ptr: ContainerPtr|
-            #![trigger self.get_container(c_ptr).owned_threads]
-            self.container_dom().contains(c_ptr) 
-            ==> 
-            self.get_container(c_ptr).owned_threads@.subset_of(self.thread_perms@.dom()));
-        assert(forall|c_ptr: ContainerPtr, t_ptr: ThreadPtr|
-            #![trigger  self.get_container(c_ptr).owned_threads, self.get_thread(t_ptr)]
-            self.container_dom().contains(c_ptr) && self.get_container(c_ptr).owned_threads@.contains(t_ptr) 
-            ==> 
-            self.get_thread(t_ptr).owning_container == c_ptr);
-        assert(forall|t_ptr: ThreadPtr|
-            #![trigger self.container_dom().contains(self.thread_perms@[t_ptr].value().owning_container)]
-            self.thread_perms@.dom().contains(t_ptr) 
-            ==> 
-            self.container_dom().contains(self.thread_perms@[t_ptr].value().owning_container) 
-            && self.get_container(self.thread_perms@[t_ptr].value().owning_container).owned_threads@.contains(t_ptr));
-        };
     }
 
     pub fn block_running_thread_and_change_queue_state(
@@ -1268,14 +942,9 @@ impl ProcessManager {
                 ).endpoint_descriptors@[endpoint_index as int].unwrap(),
             ).queue@.push(thread_ptr),
     {
-        broadcast use ProcessManager::reveal_process_manager_wf;
-        
         let endpoint_ptr = self.get_thread(thread_ptr).endpoint_descriptors.get(
             endpoint_index,
         ).unwrap();
-        proof {
-            old(self).get_endpoint(endpoint_ptr).queue.unique_implys_no_duplicates();
-        }
         let cpu_id = self.get_thread(thread_ptr).running_cpu.unwrap();
         let old_cpu = *self.cpu_list.get(cpu_id);
 
@@ -1288,9 +957,6 @@ impl ProcessManager {
             thread_ptr,
             queue_state,
         );
-        proof {
-            self.endpoint_perms.borrow_mut().tracked_insert(endpoint_ptr, endpoint_perm.get());
-        }
         let mut thread_perm = Tracked(self.thread_perms.borrow_mut().tracked_remove(thread_ptr));
         thread_set_blocking_endpoint_endpoint_ref_scheduler_ref_state_and_ipc_payload(
             thread_ptr,
@@ -1302,9 +968,6 @@ impl ProcessManager {
             ipc_payload,
             Some(endpoint_index),
         );
-        proof {
-            self.thread_perms.borrow_mut().tracked_insert(thread_ptr, thread_perm.get());
-        }
 
         self.cpu_list.set(
             cpu_id,
@@ -1314,57 +977,6 @@ impl ProcessManager {
                 current_thread: None,
             },
         );
-
-        assert(self.container_perms_wf());
-        assert(self.container_tree_wf()) by {
-            container_no_change_to_tree_fields_imply_wf(
-                self.root_container,
-                old(self).container_perms@,
-                self.container_perms@,
-            );
-        };
-        assert(self.container_fields_wf());
-        assert(self.proc_perms_wf());
-        assert(self.process_trees_wf()) by {
-            assert forall|c_ptr: ContainerPtr|
-                #![trigger self.container_dom().contains(c_ptr)]
-                #![trigger self.process_tree_wf(c_ptr)]
-                self.container_dom().contains(c_ptr) && self.get_container(
-                    c_ptr,
-                ).root_process.is_Some() implies self.process_tree_wf(c_ptr) by {
-                process_no_change_to_trees_fields_imply_wf(
-                    self.get_container(c_ptr).root_process.unwrap(),
-                    self.get_container(c_ptr).owned_procs@.to_set(),
-                    old(self).process_perms@,
-                    self.process_perms@,
-                );
-            };
-        };
-        assert(self.process_fields_wf()) by {
-            assert(forall|p_ptr: ProcPtr|
-                #![trigger self.get_proc(p_ptr)]
-                self.proc_dom().contains(p_ptr) ==> self.get_proc(p_ptr) =~= old(self).get_proc(
-                    p_ptr,
-                ));
-        };
-        assert(self.cpus_wf());
-        assert(self.container_cpu_wf());
-        assert(self.memory_disjoint());
-        assert(self.container_perms_wf());
-        assert(self.processes_container_wf());
-        assert(self.threads_process_wf());
-        assert(self.threads_perms_wf());
-        assert(self.endpoint_perms_wf());
-        assert(self.threads_endpoint_descriptors_wf());
-        assert(self.endpoints_queue_wf()) by {
-            seq_push_lemma::<usize>();
-            seq_push_unique_lemma::<usize>();
-        };
-        assert(self.endpoints_container_wf());
-        assert(self.schedulers_wf());
-        assert(self.pcid_ioid_wf());
-        assert(self.threads_cpu_wf());
-        assert(self.threads_container_wf());
 
     }
 
@@ -1447,14 +1059,10 @@ impl ProcessManager {
                 ).endpoint_descriptors@[endpoint_index as int].unwrap(),
             ).queue@.push(thread_ptr),
     {
-        broadcast use ProcessManager::reveal_process_manager_wf;
         
         let endpoint_ptr = self.get_thread(thread_ptr).endpoint_descriptors.get(
             endpoint_index,
         ).unwrap();
-        proof {
-            old(self).get_endpoint(endpoint_ptr).queue.unique_implys_no_duplicates();
-        }
         let cpu_id = self.get_thread(thread_ptr).running_cpu.unwrap();
         let old_cpu = *self.cpu_list.get(cpu_id);
 
@@ -1467,9 +1075,6 @@ impl ProcessManager {
             thread_ptr,
             queue_state,
         );
-        proof {
-            self.endpoint_perms.borrow_mut().tracked_insert(endpoint_ptr, endpoint_perm.get());
-        }
         let mut thread_perm = Tracked(self.thread_perms.borrow_mut().tracked_remove(thread_ptr));
         thread_set_blocking_endpoint_endpoint_ref_scheduler_ref_state_and_ipc_payload(
             thread_ptr,
@@ -1482,9 +1087,6 @@ impl ProcessManager {
             Some(endpoint_index),
         );
         thread_set_trap_frame_fast(thread_ptr, &mut thread_perm, pt_regs);
-        proof {
-            self.thread_perms.borrow_mut().tracked_insert(thread_ptr, thread_perm.get());
-        }
 
         self.cpu_list.set(
             cpu_id,
@@ -1495,56 +1097,6 @@ impl ProcessManager {
             },
         );
 
-        assert(self.container_perms_wf());
-        assert(self.container_tree_wf()) by {
-            container_no_change_to_tree_fields_imply_wf(
-                self.root_container,
-                old(self).container_perms@,
-                self.container_perms@,
-            );
-        };
-        assert(self.container_fields_wf());
-        assert(self.proc_perms_wf());
-        assert(self.process_trees_wf()) by {
-            assert forall|c_ptr: ContainerPtr|
-                #![trigger self.container_dom().contains(c_ptr)]
-                #![trigger self.process_tree_wf(c_ptr)]
-                self.container_dom().contains(c_ptr) && self.get_container(
-                    c_ptr,
-                ).root_process.is_Some() implies self.process_tree_wf(c_ptr) by {
-                process_no_change_to_trees_fields_imply_wf(
-                    self.get_container(c_ptr).root_process.unwrap(),
-                    self.get_container(c_ptr).owned_procs@.to_set(),
-                    old(self).process_perms@,
-                    self.process_perms@,
-                );
-            };
-        };
-        assert(self.process_fields_wf()) by {
-            assert(forall|p_ptr: ProcPtr|
-                #![trigger self.get_proc(p_ptr)]
-                self.proc_dom().contains(p_ptr) ==> self.get_proc(p_ptr) =~= old(self).get_proc(
-                    p_ptr,
-                ));
-        };
-        assert(self.cpus_wf());
-        assert(self.container_cpu_wf());
-        assert(self.memory_disjoint());
-        assert(self.container_perms_wf());
-        assert(self.processes_container_wf());
-        assert(self.threads_process_wf());
-        assert(self.threads_perms_wf());
-        assert(self.endpoint_perms_wf());
-        assert(self.threads_endpoint_descriptors_wf());
-        assert(self.endpoints_queue_wf()) by {
-            seq_push_lemma::<usize>();
-            seq_push_unique_lemma::<usize>();
-        };
-        assert(self.endpoints_container_wf());
-        assert(self.schedulers_wf());
-        assert(self.pcid_ioid_wf());
-        assert(self.threads_cpu_wf());
-        assert(self.threads_container_wf());
 
     }
 
@@ -1642,8 +1194,6 @@ impl ProcessManager {
                 ).endpoint_descriptors@[src_endpoint_index as int].unwrap(),
             ).queue_state,
     {
-        broadcast use ProcessManager::reveal_specs_to_wf;
-        
         let src_endpoint_ptr = self.get_thread(src_thread_ptr).endpoint_descriptors.get(src_endpoint_index).unwrap();
 
         let mut dst_thread_perm = Tracked(self.thread_perms.borrow_mut().tracked_remove(dst_thread_ptr));
@@ -1653,15 +1203,6 @@ impl ProcessManager {
             dst_endpoint_index,
             Some(src_endpoint_ptr)
         );
-        proof {
-            self.thread_perms.borrow_mut().tracked_insert(dst_thread_ptr, dst_thread_perm.get());
-        }
-
-        assert(self.endpoint_dom().contains(src_endpoint_ptr)) by {
-            broadcast use ProcessManager::reveal_wf_to_threads_endpoint_descriptors_wf;
-        };
-        assert(self.get_endpoint(src_endpoint_ptr).get_owning_threads().contains((dst_thread_ptr,dst_endpoint_index)) == false) by {
-            broadcast use ProcessManager::reveal_wf_to_threads_endpoint_descriptors_wf;};
 
         let mut src_endpoint_perm = Tracked(
             self.endpoint_perms.borrow_mut().tracked_remove(src_endpoint_ptr),
@@ -1672,92 +1213,6 @@ impl ProcessManager {
             dst_thread_ptr,
             dst_endpoint_index,
         );
-        proof {
-            self.endpoint_perms.borrow_mut().tracked_insert(
-                src_endpoint_ptr,
-                src_endpoint_perm.get(),
-            );
-        }
-
-        assert(self.container_perms_wf());
-        assert(self.container_tree_wf()) by {
-            broadcast use ProcessManager::reveal_wf_to_container_tree_wf;
-            container_no_change_to_tree_fields_imply_wf(
-                self.root_container,
-                old(self).container_perms@,
-                self.container_perms@,
-            );
-        };
-        assert(self.container_fields_wf());
-        assert(self.proc_perms_wf());
-        assert(self.process_trees_wf()) by {
-            broadcast use ProcessManager::reveal_wf_to_process_trees_wf;
-            broadcast use ProcessManager::reveal_wf_to_processes_container_wf;
-            assert forall|c_ptr: ContainerPtr|
-                #![trigger self.container_dom().contains(c_ptr)]
-                #![trigger self.process_tree_wf(c_ptr)]
-                self.container_dom().contains(c_ptr) && self.get_container(
-                    c_ptr,
-                ).root_process.is_Some() implies self.process_tree_wf(c_ptr) by {
-                process_no_change_to_trees_fields_imply_wf(
-                    self.get_container(c_ptr).root_process.unwrap(),
-                    self.get_container(c_ptr).owned_procs@.to_set(),
-                    old(self).process_perms@,
-                    self.process_perms@,
-                );
-            };
-        };
-        assert(self.process_fields_wf()) by {
-            assert(forall|p_ptr: ProcPtr|
-                #![trigger self.get_proc(p_ptr)]
-                self.proc_dom().contains(p_ptr) ==> self.get_proc(p_ptr) =~= old(self).get_proc(
-                    p_ptr,
-                ));
-        };
-        assert(self.cpus_wf()) by { broadcast use ProcessManager::reveal_wf_to_cpus_wf; };
-        assert(self.container_cpu_wf()) by { broadcast use ProcessManager::reveal_wf_to_container_cpu_wf; };
-        assert(self.memory_disjoint()) by { broadcast use ProcessManager::reveal_wf_to_memory_disjoint; };
-        assert(self.container_perms_wf());
-        assert(self.processes_container_wf()) by { broadcast use ProcessManager::reveal_wf_to_processes_container_wf; };
-        assert(self.threads_process_wf()) by { broadcast use ProcessManager::reveal_wf_to_threads_process_wf; };
-        assert(self.threads_perms_wf());
-        assert(self.endpoint_perms_wf());
-        assert(self.threads_endpoint_descriptors_wf()) by {
-            broadcast use ProcessManager::reveal_wf_to_threads_endpoint_descriptors_wf;
-            seq_update_lemma::<Option<EndpointPtr>>();
-            assert(forall|t_ptr: ThreadPtr, e_idx: EndpointIdx|
-                #![trigger self.thread_perms@[t_ptr].value().endpoint_descriptors@[e_idx as int]]
-                self.thread_perms@.dom().contains(t_ptr) && 0 <= e_idx
-                    < MAX_NUM_ENDPOINT_DESCRIPTORS
-                    && self.thread_perms@[t_ptr].value().endpoint_descriptors@[e_idx as int].is_Some()
-                    ==> self.endpoint_perms@.dom().contains(
-                    self.thread_perms@[t_ptr].value().endpoint_descriptors@[e_idx as int].unwrap(),
-                )
-                    && self.endpoint_perms@[self.thread_perms@[t_ptr].value().endpoint_descriptors@[e_idx as int].unwrap()].value().owning_threads@.contains(
-                (t_ptr, e_idx)));
-            assert(forall|e_ptr: EndpointPtr, t_ptr: ThreadPtr, e_idx: EndpointIdx|
-                #![trigger self.endpoint_perms@[e_ptr].value().owning_threads@.contains((t_ptr, e_idx))]
-                self.endpoint_perms@.dom().contains(e_ptr)
-                    && self.endpoint_perms@[e_ptr].value().owning_threads@.contains((t_ptr, e_idx))
-                    ==> self.thread_perms@.dom().contains(t_ptr)
-                    && self.thread_perms@[t_ptr].value().endpoint_descriptors@[e_idx as int].is_Some()
-                    && self.thread_perms@[t_ptr].value().endpoint_descriptors@[e_idx as int].unwrap()
-                    == e_ptr);
-            // assert(forall|i:int| #![auto] 0 <= i < MAX_NUM_ENDPOINT_DESCRIPTORS && i != dst_endpoint_index ==> self.thread_perms@[dst_thread_ptr].value().endpoint_descriptors@[i] == old(self).thread_perms@[dst_thread_ptr].value().endpoint_descriptors@[i]);
-            // assert(self.thread_perms@[dst_thread_ptr].value().endpoint_descriptors@[dst_endpoint_index as int ] =~= Some(src_endpoint_ptr));
-        };
-        assert(self.endpoints_queue_wf()) by {
-            broadcast use ProcessManager::reveal_wf_to_endpoints_queue_wf;
-            seq_push_lemma::<usize>();
-            seq_push_unique_lemma::<usize>();
-            seq_update_lemma::<Option<EndpointPtr>>();
-        };
-        assert(self.endpoints_container_wf()) by { broadcast use ProcessManager::reveal_wf_to_endpoints_container_wf;};
-        assert(self.schedulers_wf()) by { broadcast use ProcessManager::reveal_wf_to_schedulers_wf;};
-        assert(self.pcid_ioid_wf()) by { broadcast use ProcessManager::reveal_wf_to_pcid_ioid_wf;};
-        assert(self.threads_cpu_wf()) by { broadcast use ProcessManager::reveal_wf_to_threads_cpu_wf;};
-        assert(self.threads_container_wf()) by { broadcast use ProcessManager::reveal_wf_to_threads_container_wf;};
-        assert(self.endpoints_within_subtree())  by { broadcast use ProcessManager::reveal_wf_to_endpoints_within_subtree;};
     }
 
     pub fn new_endpoint(
@@ -1842,8 +1297,6 @@ impl ProcessManager {
                 thread_ptr,
             ).owning_container,
     {
-        broadcast use ProcessManager::reveal_process_manager_wf;
-        
         let container_ptr = self.get_thread(thread_ptr).owning_container;
         let old_mem_quota = self.get_container(container_ptr).quota.mem_4k;
 
@@ -1852,10 +1305,6 @@ impl ProcessManager {
         );
         container_set_quota_mem_4k(container_ptr, &mut container_perm, old_mem_quota - 1);
         let sll_index = container_push_endpoint(container_ptr, &mut container_perm, page_ptr_1);
-        ;
-        proof {
-            self.container_perms.borrow_mut().tracked_insert(container_ptr, container_perm.get());
-        }
 
         let (endpoint_ptr, endpoint_perm) = page_to_endpoint_with_thread_and_container(
             container_ptr,
@@ -1864,9 +1313,6 @@ impl ProcessManager {
             page_ptr_1,
             page_perm_1,
         );
-        proof {
-            self.endpoint_perms.borrow_mut().tracked_insert(endpoint_ptr, endpoint_perm.get());
-        }
 
         let mut thread_perm = Tracked(self.thread_perms.borrow_mut().tracked_remove(thread_ptr));
         thread_set_endpoint_descriptor(
@@ -1875,108 +1321,6 @@ impl ProcessManager {
             endpoint_index,
             Some(endpoint_ptr),
         );
-        proof {
-            self.thread_perms.borrow_mut().tracked_insert(thread_ptr, thread_perm.get());
-        }
-
-        assert(self.container_perms_wf());
-        assert(self.container_tree_wf()) by {
-            container_no_change_to_tree_fields_imply_wf(
-                self.root_container,
-                old(self).container_perms@,
-                self.container_perms@,
-            );
-        };
-        assert(self.container_fields_wf());
-        assert(self.proc_perms_wf());
-        assert(self.process_trees_wf()) by {
-            assert forall|c_ptr: ContainerPtr|
-                #![trigger self.container_dom().contains(c_ptr)]
-                #![trigger self.process_tree_wf(c_ptr)]
-                self.container_dom().contains(c_ptr) && self.get_container(
-                    c_ptr,
-                ).root_process.is_Some() implies self.process_tree_wf(c_ptr) by {
-                process_no_change_to_trees_fields_imply_wf(
-                    self.get_container(c_ptr).root_process.unwrap(),
-                    self.get_container(c_ptr).owned_procs@.to_set(),
-                    old(self).process_perms@,
-                    self.process_perms@,
-                );
-            };
-        };
-        assert(self.process_fields_wf()) by {
-            assert(forall|p_ptr: ProcPtr|
-                #![trigger self.get_proc(p_ptr)]
-                self.proc_dom().contains(p_ptr) ==> self.get_proc(p_ptr) =~= old(self).get_proc(
-                    p_ptr,
-                ));
-        };
-        assert(self.cpus_wf());
-        assert(self.container_cpu_wf());
-        assert(self.memory_disjoint());
-        assert(self.container_perms_wf());
-        assert(self.processes_container_wf());
-        assert(self.threads_process_wf());
-        assert(self.threads_perms_wf());
-        assert(self.endpoint_perms_wf());
-        assert(self.threads_endpoint_descriptors_wf()) by {
-            seq_update_lemma::<Option<EndpointPtr>>();
-        };
-        assert(self.endpoints_queue_wf()) by {
-            seq_push_lemma::<usize>();
-            seq_push_unique_lemma::<usize>();
-            seq_update_lemma::<Option<EndpointPtr>>();
-            assert(forall|t_ptr: ThreadPtr|
-                #![trigger self.thread_perms@[t_ptr].value().state]
-                #![trigger self.thread_perms@[t_ptr].value().blocking_endpoint_ptr]
-                #![trigger self.thread_perms@[t_ptr].value().endpoint_rev_ptr]
-                self.thread_perms@.dom().contains(t_ptr) && self.thread_perms@[t_ptr].value().state
-                    == ThreadState::BLOCKED
-                    ==> self.thread_perms@[t_ptr].value().blocking_endpoint_ptr.is_Some()
-                    && self.thread_perms@[t_ptr].value().blocking_endpoint_index.is_Some() && 0
-                    <= self.thread_perms@[t_ptr].value().blocking_endpoint_index.unwrap()
-                    < MAX_NUM_ENDPOINT_DESCRIPTORS
-                    && self.thread_perms@[t_ptr].value().endpoint_descriptors@[self.thread_perms@[t_ptr].value().blocking_endpoint_index.unwrap() as int]
-                    == Some(self.thread_perms@[t_ptr].value().blocking_endpoint_ptr.unwrap())
-                    && self.thread_perms@[t_ptr].value().endpoint_rev_ptr.is_Some()
-                    && self.endpoint_perms@.dom().contains(
-                    self.thread_perms@[t_ptr].value().blocking_endpoint_ptr.unwrap(),
-                )
-                    && self.endpoint_perms@[self.thread_perms@[t_ptr].value().blocking_endpoint_ptr.unwrap()].value().queue@.contains(
-                t_ptr)
-                    && self.endpoint_perms@[self.thread_perms@[t_ptr].value().blocking_endpoint_ptr.unwrap()].value().queue.get_node_ref(t_ptr) 
-                == self.thread_perms@[t_ptr].value().endpoint_rev_ptr.unwrap());
-            assert(forall|e_ptr: EndpointPtr|
-                #![auto]
-                old(self).endpoint_perms@.dom().contains(e_ptr)
-                    ==> 
-                self.endpoint_perms@.dom().contains(e_ptr)
-                &&
-                self.get_endpoint(e_ptr) == old(self).get_endpoint(e_ptr)
-                    // && self.thread_perms@[t_ptr].value().blocking_endpoint_ptr
-                    // == Some(e_ptr)
-                    // && self.thread_perms@[t_ptr].value().state
-                    // == ThreadState::BLOCKED
-                );
-            assert(forall|e_ptr: EndpointPtr, t_ptr: ThreadPtr|
-                #![auto]
-                old(self).endpoint_perms@.dom().contains(e_ptr) && self.endpoint_perms@[e_ptr].value().queue@.contains(t_ptr)
-                    ==> 
-                    self.thread_perms@.dom().contains(t_ptr)
-                    && self.thread_perms@[t_ptr].value().blocking_endpoint_ptr
-                    == Some(e_ptr)
-                    && self.thread_perms@[t_ptr].value().state
-                    == ThreadState::BLOCKED
-                );
-        };
-        assert(self.endpoints_container_wf()) by {
-            seq_push_lemma::<usize>();
-            seq_push_unique_lemma::<usize>();
-        };
-        assert(self.schedulers_wf());
-        assert(self.pcid_ioid_wf());
-        assert(self.threads_cpu_wf());
-        assert(self.threads_container_wf());
     }
 
     pub fn pop_scheduler_for_idle_cpu(&mut self, cpu_id: CpuId, pt_regs: &mut Registers) -> (ret:
@@ -2170,7 +1514,6 @@ impl ProcessManager {
             // ret == self.get_container(child_ptr).uppertree_seq@.contains(ancestor_ptr),
             ret == self.get_container(ancestor_ptr).subtree_set@.contains(child_ptr),
     {
-        broadcast use ProcessManager::reveal_process_manager_wf;
         if self.get_container(ancestor_ptr).depth >= self.get_container(child_ptr).depth {
             proof {
                 self.same_or_deeper_depth_imply_none_ancestor(ancestor_ptr, child_ptr);

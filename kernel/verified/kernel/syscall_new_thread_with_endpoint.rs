@@ -189,36 +189,6 @@ impl Kernel {
             new_page_perm,
         );
 
-        assert(self.memory_wf()) by {
-            assert(self.mem_man.page_closure().disjoint(self.proc_man.page_closure()));
-            assert(self.mem_man.page_closure() + self.proc_man.page_closure()
-                == self.page_alloc.allocated_pages_4k());
-            assert(self.page_alloc.mapped_pages_2m() =~= Set::empty());
-            assert(self.page_alloc.mapped_pages_1g() =~= Set::empty());
-            assert(self.page_alloc.allocated_pages_2m() =~= Set::empty());
-            assert(self.page_alloc.allocated_pages_1g() =~= Set::empty());
-        };
-        assert(self.mapping_wf());
-        assert(self.pcid_ioid_wf()) by {
-            assert(forall|p_ptr: ProcPtr|
-                #![trigger self.proc_man.get_proc(p_ptr).pcid]
-                #![trigger self.proc_man.get_proc(p_ptr).ioid]
-                self.proc_man.proc_dom().contains(p_ptr)
-                    ==> self.mem_man.get_free_pcids_as_set().contains(
-                    self.proc_man.get_proc(p_ptr).pcid,
-                ) == false && self.proc_man.get_proc(p_ptr).ioid.is_Some()
-                    ==> self.mem_man.get_free_ioids_as_set().contains(
-                    self.proc_man.get_proc(p_ptr).ioid.unwrap(),
-                ) == false);
-        };
-        assert(forall|c: ContainerPtr|
-            #![trigger self.get_container_owned_pages(c)]
-            self.container_dom().contains(c) ==> old(self).page_alloc.get_container_owned_pages(c)
-                =~= self.page_alloc.get_container_owned_pages(c));
-        assert(forall|c: ContainerPtr|
-            #![trigger self.get_container_owned_pages(c)]
-            self.container_dom().contains(c) ==> old(self).get_container_owned_pages(c)
-                =~= self.get_container_owned_pages(c));
         return SyscallReturnStruct::NoSwitchNew(
             RetValueType::SuccessUsize { value: new_thread_ptr },
         );

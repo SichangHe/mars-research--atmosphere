@@ -274,11 +274,6 @@ impl Kernel {
                 ret,
             ),
     {
-        proof {
-            self.proc_man.thread_inv();
-            self.proc_man.endpoint_inv();
-        }
-
         let sender_container_ptr = self.proc_man.get_thread(sender_thread_ptr).owning_container;
         let sender_proc_ptr = self.proc_man.get_thread(sender_thread_ptr).owning_proc;
         let blocking_endpoint_ptr_op = self.proc_man.get_thread(
@@ -298,7 +293,6 @@ impl Kernel {
                 sender_endpoint_payload,
                 IPCPayLoad::Pages { va_range: sender_va_range },
             );
-            assert(self.wf());
             return SyscallReturnStruct::NoSwitchNew(RetValueType::Error);
         }
         if self.proc_man.get_endpoint(blocking_endpoint_ptr).queue_state.is_send()
@@ -316,10 +310,8 @@ impl Kernel {
                 IPCPayLoad::Pages { va_range: sender_va_range },
                 EndpointState::SEND,
             );
-            assert(self.wf());
             return SyscallReturnStruct::NoSwitchNew(RetValueType::Error);
         }
-        assert(self.receiver_exist(sender_thread_ptr, sender_endpoint_payload));
 
         let receiver_thread_ptr = self.proc_man.get_endpoint(
             blocking_endpoint_ptr,
@@ -364,11 +356,6 @@ impl Kernel {
             // @Xiangdong TODO allow sharing between same procs
             return SyscallReturnStruct::NoSwitchNew(RetValueType::Error);
         }
-        assert(old(self).get_container(
-            old(self).get_thread(
-                old(self).get_endpoint(blocking_endpoint_ptr).queue@[0],
-            ).owning_container,
-        ).scheduler.len() < MAX_CONTAINER_SCHEDULER_LEN);
         self.range_create_and_share_mapping(
             sender_proc_ptr,
             &sender_va_range,

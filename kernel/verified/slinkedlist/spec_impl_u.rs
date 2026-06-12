@@ -278,32 +278,7 @@ impl<T: Copy, const N: usize> StaticLinkedList<T, N> {
         self.free_list_tail = -1;
         self.free_list_len = 0;
 
-        assert(self.value_list_wf());
-        assert(self.free_list_wf());
-        assert(self.spec_seq_wf());
-        assert(forall|i: int, j: int|
-            #![trigger self.value_list@[i], self.free_list@[j]]
-            0 <= i < self.value_list@.len() && 0 <= j < self.free_list@.len()
-                ==> self.value_list@[i] != self.free_list@[j]);
-
         for i in 0..N
-            invariant
-                0 <= i <= N,
-                N > 2,
-                N < SLLIndex::MAX,
-                self.array_wf(),
-                self.free_list_len == i,
-                self.free_list_len + self.value_list_len == i,
-                self.value_list_wf(),
-                self.free_list_wf(),
-                self.spec_seq_wf(),
-                forall|i: int, j: int|
-                    #![trigger self.value_list@[i], self.free_list@[j]]
-                    0 <= i < self.value_list@.len() && 0 <= j < self.free_list@.len()
-                        ==> self.value_list@[i] != self.free_list@[j],
-                forall|j: int|
-                    #![trigger self.free_list@[j]]
-                    0 <= j < self.free_list_len ==> self.free_list@[j] == j as SLLIndex,
         {
             self.free_list_len = self.free_list_len + 1;
             if i == 0 {
@@ -313,7 +288,6 @@ impl<T: Copy, const N: usize> StaticLinkedList<T, N> {
                 self.set_prev(0 as SLLIndex, -1);
                 self.set_next(0 as SLLIndex, -1);
                 self.set_value(0 as SLLIndex, None);
-                assert(self.free_list_wf());
             } else {
                 self.free_list = Ghost(self.free_list@.push(i as SLLIndex));
                 self.set_next(self.free_list_tail, i as SLLIndex);
@@ -321,10 +295,8 @@ impl<T: Copy, const N: usize> StaticLinkedList<T, N> {
                 self.set_next(i as SLLIndex, -1);
                 self.set_value(i as SLLIndex, None);
                 self.free_list_tail = i as SLLIndex;
-                assert(self.free_list_wf());
             }
         }
-        assert(self.wf());
     }
 
     pub fn get_head(&self) -> (ret: T)
@@ -356,11 +328,7 @@ impl<T: Copy, const N: usize> StaticLinkedList<T, N> {
             self.get_node_ref(*new_value) == free_node_index,
             self.unique(),
     {
-        proof {
-            seq_push_lemma::<SLLIndex>();
-            seq_push_lemma::<T>();
-            seq_push_index_of_lemma::<T>();
-        }
+
         if self.value_list_len == 0 {
             // value list empty
             // assert(self.value_list_head == -1);
@@ -374,57 +342,32 @@ impl<T: Copy, const N: usize> StaticLinkedList<T, N> {
             self.set_prev(self.free_list_head, -1);
 
             self.free_list_len = self.free_list_len - 1;
-            proof {
-                self.free_list@ = self.free_list@.skip(1);
-            }
             self.value_list_head = ret;
             self.value_list_tail = ret;
             self.set_prev(ret, -1);
 
-            assert(forall|i: nat|
-                #![trigger old(self).arr_seq@[i as int]]
-                #![trigger self.arr_seq@[i as int], old(self).arr_seq@[i as int]]
-                0 <= i < N && i != ret ==> old(self).arr_seq@[i as int].next
-                    == self.arr_seq@[i as int].next);
-
             self.set_next(ret, -1);
-            proof {
-                self.value_list@ = self.value_list@.push(ret);
-                self.spec_seq@ = self.spec_seq@.push(*new_value);
-            }
             self.value_list_len = self.value_list_len + 1;
             self.set_value(ret, Some(*new_value));
             
-            assert(self.wf());
-            assert(self@ == old(self)@.push(*new_value));
             return ret;
         } else if self.free_list_len == 1 {
             let ret = self.free_list_tail;
             self.free_list_len = 0;
             self.free_list_head = -1;
             self.free_list_tail = -1;
-            proof {
-                self.free_list@ = self.free_list@.skip(1);
-            }
 
             let old_value_list_tail = self.value_list_tail;
             self.set_prev(ret, old_value_list_tail);
             self.set_next(old_value_list_tail, ret);
             self.value_list_tail = ret;
-            proof {
-                self.value_list@ = self.value_list@.push(ret);
-                self.spec_seq@ = self.spec_seq@.push(*new_value);
-            }
             self.value_list_len = self.value_list_len + 1;
 
             self.set_value(ret, Some(*new_value));
 
-            assert(self.wf());
-            assert(self@ == old(self)@.push(*new_value));
             return ret;
 
         } else {
-            assert(self.free_list_len > 1 && self.value_list_len > 0);
             let ret = self.free_list_head;
             let old_value_list_tail = self.value_list_tail;
 
@@ -432,20 +375,12 @@ impl<T: Copy, const N: usize> StaticLinkedList<T, N> {
             self.set_prev(new_free_list_head, -1);
             self.free_list_head = new_free_list_head;
             self.free_list_len = self.free_list_len - 1;
-            proof {
-                self.free_list@ = self.free_list@.skip(1);
-            }
             self.set_next(old_value_list_tail, ret);
             self.set_prev(ret, old_value_list_tail);
             self.set_next(ret, -1);
             self.value_list_tail = ret;
             self.value_list_len = self.value_list_len + 1;
-            proof {
-                self.value_list@ = self.value_list@.push(ret);
-                self.spec_seq@ = self.spec_seq@.push(*new_value);
-            }
             self.set_value(ret, Some(*new_value));
-            assert(self.wf());
             return ret;
         }
     }
@@ -468,12 +403,6 @@ impl<T: Copy, const N: usize> StaticLinkedList<T, N> {
                     old(self).get_node_ref(v) == 
                         self.get_node_ref(v),
     {
-        proof {
-            seq_push_lemma::<SLLIndex>();
-            seq_skip_lemma::<SLLIndex>();
-            seq_skip_lemma::<T>();
-            seq_skip_index_of_lemma::<T>();
-        }
         if self.free_list_len == 0 {
             let ret_index = self.value_list_head;
             let ret = self.get_value(ret_index).unwrap();
@@ -481,22 +410,15 @@ impl<T: Copy, const N: usize> StaticLinkedList<T, N> {
             let new_value_list_head = self.get_next(ret_index);
             self.value_list_head = new_value_list_head;
             self.set_prev(new_value_list_head, -1);
-            proof {
-                self.value_list@ = self.value_list@.skip(1);
-                self.spec_seq@ = self.spec_seq@.skip(1);
-            }
+
             self.value_list_len = self.value_list_len - 1;
 
             self.free_list_head = ret_index;
             self.free_list_tail = ret_index;
             self.set_prev(ret_index, -1);
             self.set_next(ret_index, -1);
-            proof {
-                self.free_list@ = self.free_list@.push(ret_index);
-            }
             self.free_list_len = self.free_list_len + 1;
 
-            assert(self.wf());
             return (ret, ret_index);
         } else if self.value_list_len == 1 {
             let ret_index = self.value_list_head;
@@ -507,19 +429,10 @@ impl<T: Copy, const N: usize> StaticLinkedList<T, N> {
             self.set_prev(ret_index, old_free_list_tail);
             self.free_list_tail = ret_index;
             self.free_list_len = self.free_list_len + 1;
-            proof {
-                self.free_list@ = self.free_list@.push(ret_index);
-            }
 
             self.value_list_head = -1;
             self.value_list_tail = -1;
-            proof {
-                self.value_list@ = self.value_list@.skip(1);
-                self.spec_seq@ = self.spec_seq@.skip(1);
-            }
             self.value_list_len = self.value_list_len - 1;
-
-            assert(self.wf());
 
             return (ret, ret_index);
         } else {
@@ -529,10 +442,6 @@ impl<T: Copy, const N: usize> StaticLinkedList<T, N> {
             let new_value_list_head = self.get_next(ret_index);
             self.value_list_head = new_value_list_head;
             self.set_prev(new_value_list_head, -1);
-            proof {
-                self.value_list@ = self.value_list@.skip(1);
-                self.spec_seq@ = self.spec_seq@.skip(1);
-            }
             self.value_list_len = self.value_list_len - 1;
 
             let old_free_list_tail = self.free_list_tail;
@@ -541,10 +450,6 @@ impl<T: Copy, const N: usize> StaticLinkedList<T, N> {
             self.set_prev(ret_index, old_free_list_tail);
             self.free_list_tail = ret_index;
             self.free_list_len = self.free_list_len + 1;
-            proof {
-                self.free_list@ = self.free_list@.push(ret_index);
-            }
-            assert(self.wf());
             return (ret, ret_index);
         }
     }
@@ -567,31 +472,17 @@ impl<T: Copy, const N: usize> StaticLinkedList<T, N> {
                     old(self).get_node_ref(v) == 
                         self.get_node_ref(v),
     {
-        proof {
-            seq_push_lemma::<SLLIndex>();
-            seq_skip_lemma::<SLLIndex>();
-            seq_skip_lemma::<T>();
-            seq_skip_index_of_lemma::<T>();
-        }
         let ret = self.get_value(remove_index).unwrap();
         let old_free_list_tail = self.free_list_tail;
         self.set_next(old_free_list_tail, remove_index);
         self.set_prev(remove_index, old_free_list_tail);
         self.free_list_tail = remove_index;
         self.free_list_len = self.free_list_len + 1;
-        proof {
-            self.free_list@ = self.free_list@.push(remove_index);
-        }
 
         self.value_list_head = -1;
         self.value_list_tail = -1;
-        proof {
-            self.value_list@ = self.value_list@.skip(1);
-            self.spec_seq@ = self.spec_seq@.skip(1);
-        }
         self.value_list_len = self.value_list_len - 1;
 
-        assert(self.wf());
         return ret;
     }
 
@@ -614,32 +505,19 @@ impl<T: Copy, const N: usize> StaticLinkedList<T, N> {
                     old(self).get_node_ref(v) == 
                         self.get_node_ref(v),
     {
-        proof {
-            seq_push_lemma::<SLLIndex>();
-            seq_skip_lemma::<SLLIndex>();
-            seq_skip_lemma::<T>();
-            seq_skip_index_of_lemma::<T>();
-        }
+
         let ret = self.get_value(remove_index).unwrap();
         let new_value_list_head = self.get_next(remove_index);
         self.value_list_head = new_value_list_head;
         self.set_prev(new_value_list_head, -1);
-        proof {
-            self.value_list@ = self.value_list@.skip(1);
-            self.spec_seq@ = self.spec_seq@.skip(1);
-        }
         self.value_list_len = self.value_list_len - 1;
 
         self.free_list_head = remove_index;
         self.free_list_tail = remove_index;
         self.set_prev(remove_index, -1);
         self.set_next(remove_index, -1);
-        proof {
-            self.free_list@ = self.free_list@.push(remove_index);
-        }
         self.free_list_len = self.free_list_len + 1;
 
-        assert(self.wf());
         return ret;
     }
 
@@ -662,37 +540,18 @@ impl<T: Copy, const N: usize> StaticLinkedList<T, N> {
                     old(self).get_node_ref(v) == 
                         self.get_node_ref(v),
     {
-        proof {
-            seq_push_lemma::<SLLIndex>();
-            seq_remove_lemma::<SLLIndex>();
-            seq_remove_lemma::<T>();
-            // seq_remove_index_of_lemma::<SLLIndex>();
-            // seq_remove_index_of_lemma::<T>();
-        }
         let ret = self.get_value(remove_index).unwrap();
         let new_value_list_tail = self.get_prev(remove_index);
         self.value_list_tail = new_value_list_tail;
         self.set_next(new_value_list_tail, -1);
-        proof {
-            self.value_list@ = self.value_list@.subrange(0, self.value_list_len as int - 1).add(
-                self.value_list@.subrange(self.value_list_len as int, self.value_list_len as int),
-            );
-            self.spec_seq@ = self.spec_seq@.subrange(0, self.value_list_len as int - 1).add(
-                self.spec_seq@.subrange(self.value_list_len as int, self.value_list_len as int),
-            );
-        }
         self.value_list_len = self.value_list_len - 1;
 
         self.free_list_head = remove_index;
         self.free_list_tail = remove_index;
         self.set_prev(remove_index, -1);
         self.set_next(remove_index, -1);
-        proof {
-            self.free_list@ = self.free_list@.push(remove_index);
-        }
         self.free_list_len = self.free_list_len + 1;
 
-        assert(self.wf());
         return ret;
     }
 
@@ -717,13 +576,6 @@ impl<T: Copy, const N: usize> StaticLinkedList<T, N> {
             self.unique(),
             self@ =~= old(self)@.remove_value(ret),
     {
-        proof {
-            seq_push_lemma::<SLLIndex>();
-            seq_remove_lemma::<SLLIndex>();
-            seq_remove_lemma::<T>();
-            // seq_remove_index_of_lemma::<SLLIndex>();
-            // seq_remove_index_of_lemma::<T>();
-        }
         let ret = self.get_value(remove_index).unwrap();
         let prev = self.get_prev(remove_index);
         let next = self.get_next(remove_index);
@@ -731,43 +583,14 @@ impl<T: Copy, const N: usize> StaticLinkedList<T, N> {
         self.set_prev(next, prev);
 
         let ghost_index = Ghost(self.spec_seq@.index_of(v@));
-        assert(0 <= ghost_index@ < self.spec_seq@.len());
-        assert(self.spec_seq@[ghost_index@] == v@);
-        assert(self.value_list@[ghost_index@] == remove_index);
-
-        proof {
-            self.value_list@ = self.value_list@.subrange(0, ghost_index@).add(
-                self.value_list@.subrange(ghost_index@ + 1, self.value_list_len as int),
-            );
-            self.spec_seq@ = self.spec_seq@.subrange(0, ghost_index@).add(
-                self.spec_seq@.subrange(ghost_index@ + 1, self.value_list_len as int),
-            );
-        }
         self.value_list_len = self.value_list_len - 1;
 
         self.free_list_head = remove_index;
         self.free_list_tail = remove_index;
         self.set_prev(remove_index, -1);
         self.set_next(remove_index, -1);
-        proof {
-            self.free_list@ = self.free_list@.push(remove_index);
-        }
         self.free_list_len = self.free_list_len + 1;
 
-        assert(self.wf()) by {
-            assert(self.array_wf());
-            assert( self.free_list_len + self.value_list_len == N);
-            assert( self.value_list_wf());
-            assert( self.free_list_wf());
-            assert( self.spec_seq_wf());
-        };
-        assert(
-            forall|v:T|
-                #![auto]
-                self@.contains(v) ==> 
-                    old(self).get_node_ref(v) == 
-                        self.get_node_ref(v)
-        );
         return ret;
     }
 
@@ -792,20 +615,10 @@ impl<T: Copy, const N: usize> StaticLinkedList<T, N> {
                     old(self).get_node_ref(v) == 
                         self.get_node_ref(v),
     {
-        proof {
-            seq_push_lemma::<SLLIndex>();
-            seq_skip_lemma::<SLLIndex>();
-            seq_skip_lemma::<T>();
-            seq_skip_index_of_lemma::<T>();
-        }
         let ret = self.get_value(remove_index).unwrap();
         let new_value_list_head = self.get_next(remove_index);
         self.value_list_head = new_value_list_head;
         self.set_prev(new_value_list_head, -1);
-        proof {
-            self.value_list@ = self.value_list@.skip(1);
-            self.spec_seq@ = self.spec_seq@.skip(1);
-        }
         self.value_list_len = self.value_list_len - 1;
 
         let old_free_list_tail = self.free_list_tail;
@@ -814,11 +627,7 @@ impl<T: Copy, const N: usize> StaticLinkedList<T, N> {
         self.set_prev(remove_index, old_free_list_tail);
         self.free_list_tail = remove_index;
         self.free_list_len = self.free_list_len + 1;
-        proof {
-            self.free_list@ = self.free_list@.push(remove_index);
-        }
 
-        assert(self.wf());
         return ret;
     }
 
@@ -843,23 +652,10 @@ impl<T: Copy, const N: usize> StaticLinkedList<T, N> {
                     old(self).get_node_ref(v) == 
                         self.get_node_ref(v),
     {
-        proof {
-            seq_push_lemma::<SLLIndex>();
-            seq_remove_lemma::<SLLIndex>();
-            seq_remove_lemma::<T>();
-        }
         let ret = self.get_value(remove_index).unwrap();
         let new_value_list_tail = self.get_prev(remove_index);
         self.value_list_tail = new_value_list_tail;
         self.set_next(new_value_list_tail, -1);
-        proof {
-            self.value_list@ = self.value_list@.subrange(0, self.value_list_len as int - 1).add(
-                self.value_list@.subrange(self.value_list_len as int, self.value_list_len as int),
-            );
-            self.spec_seq@ = self.spec_seq@.subrange(0, self.value_list_len as int - 1).add(
-                self.spec_seq@.subrange(self.value_list_len as int, self.value_list_len as int),
-            );
-        }
         self.value_list_len = self.value_list_len - 1;
 
         let old_free_list_tail = self.free_list_tail;
@@ -868,11 +664,7 @@ impl<T: Copy, const N: usize> StaticLinkedList<T, N> {
         self.set_prev(remove_index, old_free_list_tail);
         self.free_list_tail = remove_index;
         self.free_list_len = self.free_list_len + 1;
-        proof {
-            self.free_list@ = self.free_list@.push(remove_index);
-        }
 
-        assert(self.wf());
         return ret;
     }
 
@@ -897,13 +689,6 @@ impl<T: Copy, const N: usize> StaticLinkedList<T, N> {
                     old(self).get_node_ref(v) == 
                         self.get_node_ref(v),
     {
-        proof {
-            seq_push_lemma::<SLLIndex>();
-            seq_skip_lemma::<SLLIndex>();
-            seq_remove_lemma::<SLLIndex>();
-            seq_remove_lemma_2::<SLLIndex>();
-            seq_remove_lemma::<T>();
-        }
         let ret = self.get_value(remove_index).unwrap();
         let prev = self.get_prev(remove_index);
         let next = self.get_next(remove_index);
@@ -911,17 +696,7 @@ impl<T: Copy, const N: usize> StaticLinkedList<T, N> {
         self.set_prev(next, prev);
 
         let ghost_index = Ghost(self.value_list@.index_of(remove_index));
-        assert(0 <= ghost_index@ < self.value_list@.len());
-        assert(self.value_list@[ghost_index@] == remove_index);
 
-        proof {
-            self.value_list@ = self.value_list@.subrange(0, ghost_index@).add(
-                self.value_list@.subrange(ghost_index@ + 1, self.value_list_len as int),
-            );
-            self.spec_seq@ = self.spec_seq@.subrange(0, ghost_index@).add(
-                self.spec_seq@.subrange(ghost_index@ + 1, self.value_list_len as int),
-            );
-        }
         self.value_list_len = self.value_list_len - 1;
 
         let old_free_list_tail = self.free_list_tail;
@@ -930,11 +705,7 @@ impl<T: Copy, const N: usize> StaticLinkedList<T, N> {
         self.set_prev(remove_index, old_free_list_tail);
         self.free_list_tail = remove_index;
         self.free_list_len = self.free_list_len + 1;
-        proof {
-            self.free_list@ = self.free_list@.push(remove_index);
-        }
 
-        assert(self.wf());
         return ret;
     }
 

@@ -279,12 +279,7 @@ impl ProcessManager {
                 old(self).get_endpoint_ptr_by_endpoint_idx(thread_ptr, endpoint_index).unwrap(),
             ).owning_threads@.insert((page_ptr_3, 0)),
     {
-        proof {
-            seq_push_lemma::<ThreadPtr>();
-        }
-        broadcast use ProcessManager::reveal_specs_to_wf;
-        broadcast use ProcessManager::reveal_wf_to_memory_disjoint;
-
+    
         let old_container_ptr = self.get_thread(thread_ptr).owning_container;
         let mut old_quota = self.get_container(old_container_ptr).quota;
         let endpoint_ptr = self.get_thread(thread_ptr).endpoint_descriptors.get(
@@ -295,19 +290,6 @@ impl ProcessManager {
         );
         let old_depth = self.get_container(old_container_ptr).depth;
 
-        assert(forall|c_ptr: ContainerPtr|
-            #![trigger self.get_container(c_ptr).children]
-            #![trigger self.get_container(c_ptr).uppertree_seq]
-            self.container_dom().contains(c_ptr) ==> self.get_container(c_ptr).children@.contains(
-                page_ptr_1,
-            ) == false && self.get_container(c_ptr).uppertree_seq@.contains(page_ptr_1) == false
-                && self.get_container(c_ptr).uppertree_seq@.contains(c_ptr) == false) by {
-            broadcast use ProcessManager::reveal_wf_to_container_tree_wf;
-            container_tree_wf_imply_childern_uppertree_specs(
-                self.root_container,
-                self.container_perms@,
-            );
-        };
         old_quota.subtract_mem_4k(3);
         old_quota.subtract_new_quota(new_quota);
         let mut old_container_perm = Tracked(
@@ -319,12 +301,6 @@ impl ProcessManager {
             &mut old_container_perm,
             page_ptr_1,
         );
-        proof {
-            self.container_perms.borrow_mut().tracked_insert(
-                old_container_ptr,
-                old_container_perm.get(),
-            );
-        }
 
         let (new_container_ptr, mut new_container_perm) = page_to_container_tree_version_1(
             page_ptr_1,
@@ -354,12 +330,6 @@ impl ProcessManager {
             &mut new_container_perm,
             Ghost(Set::<ThreadPtr>::empty().insert(page_ptr_3)),
         );
-        proof {
-            self.container_perms.borrow_mut().tracked_insert(
-                new_container_ptr,
-                new_container_perm.get(),
-            );
-        }
 
         container_perms_update_subtree_set(
             &mut self.container_perms,
@@ -382,9 +352,6 @@ impl ProcessManager {
             Ghost(Set::empty()),
             0,
         );
-        proof {
-            self.process_perms.borrow_mut().tracked_insert(new_proc_ptr, proc_perm.get());
-        }
         let (new_thread_ptr, thread_perm) = page_to_thread_with_endpoint(
             page_ptr_3,
             page_perm_3,
@@ -395,164 +362,11 @@ impl ProcessManager {
             scheduler_node_ref,
             endpoint_ptr,
         );
-        proof {
-            self.thread_perms.borrow_mut().tracked_insert(new_thread_ptr, thread_perm.get());
-        }
 
-        assert(self.endpoint_dom().contains(endpoint_ptr)) by {
-            broadcast use ProcessManager::reveal_wf_to_threads_endpoint_descriptors_wf;
-        }        
-        assert(self.get_endpoint(endpoint_ptr).get_owning_threads().contains((new_thread_ptr,0)) == false) by {
-            broadcast use ProcessManager::reveal_wf_to_threads_endpoint_descriptors_wf;};
         let mut endpoint_perm = Tracked(
             self.endpoint_perms.borrow_mut().tracked_remove(endpoint_ptr),
         );
         endpoint_add_ref(endpoint_ptr, &mut endpoint_perm, new_thread_ptr, 0);
-        proof {
-            self.endpoint_perms.borrow_mut().tracked_insert(endpoint_ptr, endpoint_perm.get());
-        }
-
-        assert(self.container_perms_wf()) by {
-            seq_push_lemma::<usize>();
-            seq_push_unique_lemma::<usize>();
-        };
-        assert(self.container_tree_wf()) by {
-            broadcast use ProcessManager::reveal_wf_to_container_tree_wf;
-            // assert(self.get_container(new_container_ptr).uppertree_seq =~= new_upper_tree_ghost);
-            seq_push_lemma::<usize>();
-            seq_push_unique_lemma::<usize>();
-            container_tree_wf_imply_uppertree_subset_of_tree(
-                self.root_container,
-                old(self).container_perms@,
-            );
-            new_container_preserve_tree_inv(
-                self.root_container,
-                old(self).container_perms@,
-                self.container_perms@,
-                old_container_ptr,
-                new_container_ptr,
-            );
-        };
-        assert(self.proc_perms_wf()) by {
-            seq_push_lemma::<usize>();
-            seq_push_unique_lemma::<usize>();
-        };
-        assert(self.process_trees_wf()) by {
-            broadcast use ProcessManager::reveal_wf_to_processes_container_wf;
-            broadcast use ProcessManager::reveal_wf_to_process_trees_wf;
-            seq_push_lemma::<usize>();
-            seq_push_unique_lemma::<usize>();
-
-            assert forall|c_ptr: ContainerPtr|
-                #![trigger self.container_dom().contains(c_ptr)]
-                #![trigger self.process_tree_wf(c_ptr)]
-                self.container_dom().contains(c_ptr) && self.get_container(
-                    c_ptr,
-                ).root_process.is_Some() implies self.process_tree_wf(c_ptr) by {
-                if c_ptr != new_container_ptr {
-                    old(self).wf_imply_container_owned_proc_disjoint();
-                    assert(self.get_container(c_ptr).owned_procs@.to_set().contains(new_proc_ptr)
-                        == false);
-                    process_no_change_to_tree_fields_imply_wf(
-                        self.get_container(c_ptr).root_process.unwrap(),
-                        self.get_container(c_ptr).owned_procs@.to_set(),
-                        old(self).process_perms@,
-                        self.process_perms@,
-                    );
-                    assert(self.process_tree_wf(c_ptr));
-                } else {
-                    // assert(self.get_container(new_container_ptr).owned_procs@ == seq![new_proc_ptr]);
-                    assume(self.get_container(new_container_ptr).owned_procs@.to_set()
-                        == set![new_proc_ptr]);  // TODO @xiangdong
-                    new_proc_tree_infer_wf(
-                        self.get_container(new_container_ptr).root_process.unwrap(),
-                        self.get_container(new_container_ptr).owned_procs@.to_set(),
-                        self.process_perms@,
-                        new_proc_ptr,
-                    );
-                }
-            };
-
-        };
-
-        assert(self.container_fields_wf());
-        assert(self.process_fields_wf());
-        assert(self.cpus_wf()) by {broadcast use ProcessManager::reveal_wf_to_cpus_wf;};
-        assert(self.container_cpu_wf()) by {broadcast use ProcessManager::reveal_wf_to_container_cpu_wf;};
-        assert(self.memory_disjoint()) by {broadcast use ProcessManager::reveal_wf_to_memory_disjoint;};
-        assert(self.container_perms_wf());
-        assert(self.processes_container_wf()) by {
-            broadcast use ProcessManager::reveal_wf_to_processes_container_wf;
-            seq_push_lemma::<usize>();
-            seq_push_unique_lemma::<usize>();
-        };
-        assert(self.threads_process_wf()) by {
-            broadcast use ProcessManager::reveal_wf_to_threads_process_wf;
-            seq_push_lemma::<usize>();
-            seq_push_unique_lemma::<usize>();
-        };
-        assert(self.threads_perms_wf());
-        assert(self.endpoint_perms_wf());
-        assert(self.threads_endpoint_descriptors_wf()) by {broadcast use ProcessManager::reveal_wf_to_threads_endpoint_descriptors_wf;};
-        assert(self.endpoints_queue_wf()) by {broadcast use ProcessManager::reveal_wf_to_endpoints_queue_wf;};
-        assert(self.endpoints_container_wf()) by { broadcast use ProcessManager::reveal_wf_to_endpoints_container_wf;};
-        assert(self.schedulers_wf()) by { 
-            broadcast use ProcessManager::reveal_wf_to_schedulers_wf;
-            broadcast use ProcessManager::reveal_wf_to_threads_container_wf;
-        };
-        assert(self.pcid_ioid_wf()) by { broadcast use ProcessManager::reveal_wf_to_pcid_ioid_wf;};
-        assert(self.threads_cpu_wf()) by { broadcast use ProcessManager::reveal_wf_to_threads_cpu_wf;};
-        assert(self.threads_container_wf()) by { 
-            broadcast use ProcessManager::reveal_wf_to_threads_container_wf;
-            seq_push_lemma::<usize>();
-            seq_push_unique_lemma::<usize>();};
-        assert(self.endpoints_within_subtree())  by {
-            seq_push_lemma::<usize>();
-            broadcast use ProcessManager::reveal_wf_to_endpoints_within_subtree;
-            broadcast use ProcessManager::reveal_wf_to_threads_endpoint_descriptors_wf;
-            assert(
-                (
-                    old_container_ptr == old(self).get_endpoint(endpoint_ptr).owning_container
-                    ||
-                    old(self).get_container(old(self).get_endpoint(endpoint_ptr).owning_container).subtree_set@.contains(old_container_ptr)
-                )
-            );
-            assert(self.get_container(old_container_ptr).subtree_set@.contains(new_container_ptr)) by {
-                    in_child_imply_in_subtree(
-                    self.root_container,
-                    self.container_perms@,
-                    old_container_ptr,
-                    new_container_ptr
-                );
-            }
-            assert(
-                old(self).get_endpoint(endpoint_ptr).owning_container != old_container_ptr 
-                ==> 
-                // old(self).get_container(old(self).get_endpoint(endpoint_ptr).owning_container).subtree_set@.contains(old_container_ptr)
-                // &&
-                    self.get_container(old(self).get_endpoint(endpoint_ptr).owning_container).subtree_set@.contains(new_container_ptr)
-            )by {
-                if old(self).get_endpoint(endpoint_ptr).owning_container != old_container_ptr {
-                    in_subtree_impy_in_subsubtree(
-                        self.root_container,
-                        self.container_perms@,
-                        old(self).get_endpoint(endpoint_ptr).owning_container,
-                        old_container_ptr,
-                        new_container_ptr
-                    );
-                }
-            };
-            // assume(
-            //     self.get_container(old(self).get_endpoint(endpoint_ptr).owning_container).subtree_set@.contains(new_container_ptr)
-            // );
-
-            // in_child_imply_in_subtree(
-            //     self.root_container,
-            //     self.container_perms@,
-            //     old_container_ptr,
-            //     new_container_ptr
-            // );
-        };
 
     }
 }

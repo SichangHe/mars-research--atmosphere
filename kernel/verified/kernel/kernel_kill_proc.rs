@@ -58,40 +58,6 @@ impl Kernel {
         let (page_ptr, page_perm) = self.proc_man.kill_process_none_root(proc_ptr);
         self.page_alloc.free_page_4k(page_ptr, page_perm);
         self.mem_man.free_page_table(proc_ptr, pcid);
-        assert(self.memory_wf()) by {
-            assert(self.mem_man.page_closure() + self.proc_man.page_closure()
-            == self.page_alloc.allocated_pages_4k());
-        assert(self.page_alloc.mapped_pages_2m() =~= Set::empty());
-        assert(self.page_alloc.mapped_pages_1g() =~= Set::empty());
-        assert(self.page_alloc.allocated_pages_2m() =~= Set::empty());
-        assert(self.page_alloc.allocated_pages_1g() =~= Set::empty());
-        assert(self.page_alloc.container_map_4k@.dom() =~= self.proc_man.container_dom());
-        assert(self.page_alloc.container_map_2m@.dom() =~= self.proc_man.container_dom());
-        assert(self.page_alloc.container_map_1g@.dom() =~= self.proc_man.container_dom());
-        };
-        assert(self.page_mapping_wf()) by {
-            assert( self.page_mapping@.dom().subset_of(self.page_alloc.mapped_pages_4k()));
-            assert( self.page_io_mapping@.dom().subset_of(self.page_alloc.mapped_pages_4k()));
-        assert( forall|page_ptr: PagePtr, p_ptr: ProcPtr, va: VAddr|
-            #![trigger self.page_mapping@[page_ptr].contains((p_ptr, va))]
-            #![trigger self.page_alloc.page_mappings(page_ptr).contains((self.proc_man.get_proc(p_ptr).pcid, va))]
-            self.page_mapping@.dom().contains(page_ptr) && self.page_mapping@[page_ptr].contains(
-                (p_ptr, va),
-            ) ==> self.page_alloc.page_is_mapped(page_ptr) && self.proc_man.proc_dom().contains(
-                p_ptr,
-            ) && self.page_alloc.page_mappings(page_ptr).contains(
-                (self.proc_man.get_proc(p_ptr).pcid, va),
-            ));
-        assert( forall|page_ptr: PagePtr, pcid: Pcid, va: VAddr|
-            #![trigger self.page_alloc.page_mappings(page_ptr).contains((pcid, va))]
-            #![trigger self.page_mapping@[page_ptr].contains((self.mem_man.pcid_to_proc_ptr(pcid), va))]
-            self.page_alloc.page_is_mapped(page_ptr) && self.page_alloc.page_mappings(
-                page_ptr,
-            ).contains((pcid, va)) ==> self.page_mapping@.dom().contains(page_ptr)
-                && self.page_mapping@[page_ptr].contains((self.mem_man.pcid_to_proc_ptr(pcid), va)));
-        };
-        assert(self.mapping_wf());
-        assert(self.pcid_ioid_wf());
     }
 
     pub fn helper_kernel_kill_proc_root(&mut self, proc_ptr:ProcPtr)
@@ -136,40 +102,6 @@ impl Kernel {
         let (page_ptr, page_perm) = self.proc_man.kill_process_root(proc_ptr);
         self.page_alloc.free_page_4k(page_ptr, page_perm);
         self.mem_man.free_page_table(proc_ptr, pcid);
-        assert(self.memory_wf()) by {
-            assert(self.mem_man.page_closure() + self.proc_man.page_closure()
-            == self.page_alloc.allocated_pages_4k());
-        assert(self.page_alloc.mapped_pages_2m() =~= Set::empty());
-        assert(self.page_alloc.mapped_pages_1g() =~= Set::empty());
-        assert(self.page_alloc.allocated_pages_2m() =~= Set::empty());
-        assert(self.page_alloc.allocated_pages_1g() =~= Set::empty());
-        assert(self.page_alloc.container_map_4k@.dom() =~= self.proc_man.container_dom());
-        assert(self.page_alloc.container_map_2m@.dom() =~= self.proc_man.container_dom());
-        assert(self.page_alloc.container_map_1g@.dom() =~= self.proc_man.container_dom());
-        };
-        assert(self.page_mapping_wf()) by {
-            assert( self.page_mapping@.dom().subset_of(self.page_alloc.mapped_pages_4k()));
-            assert( self.page_io_mapping@.dom().subset_of(self.page_alloc.mapped_pages_4k()));
-        assert( forall|page_ptr: PagePtr, p_ptr: ProcPtr, va: VAddr|
-            #![trigger self.page_mapping@[page_ptr].contains((p_ptr, va))]
-            #![trigger self.page_alloc.page_mappings(page_ptr).contains((self.proc_man.get_proc(p_ptr).pcid, va))]
-            self.page_mapping@.dom().contains(page_ptr) && self.page_mapping@[page_ptr].contains(
-                (p_ptr, va),
-            ) ==> self.page_alloc.page_is_mapped(page_ptr) && self.proc_man.proc_dom().contains(
-                p_ptr,
-            ) && self.page_alloc.page_mappings(page_ptr).contains(
-                (self.proc_man.get_proc(p_ptr).pcid, va),
-            ));
-        assert( forall|page_ptr: PagePtr, pcid: Pcid, va: VAddr|
-            #![trigger self.page_alloc.page_mappings(page_ptr).contains((pcid, va))]
-            #![trigger self.page_mapping@[page_ptr].contains((self.mem_man.pcid_to_proc_ptr(pcid), va))]
-            self.page_alloc.page_is_mapped(page_ptr) && self.page_alloc.page_mappings(
-                page_ptr,
-            ).contains((pcid, va)) ==> self.page_mapping@.dom().contains(page_ptr)
-                && self.page_mapping@[page_ptr].contains((self.mem_man.pcid_to_proc_ptr(pcid), va)));
-        };
-        assert(self.mapping_wf());
-        assert(self.pcid_ioid_wf());
     }
 
     // #[verifier::exec_allows_no_decreases_clause]

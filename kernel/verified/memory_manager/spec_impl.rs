@@ -567,59 +567,12 @@ impl MemoryManager {
                 self,
             ).get_pagetable_by_pcid(target_pcid).unwrap().kernel_entries,
     {
-        assert(old(self).get_pagetable_mapping_by_pcid(target_pcid) =~= old(
-            self,
-        ).page_tables@[target_pcid as int].unwrap().mapping_4k());
-        assert(forall|va: VAddr|
-            #![trigger old(self).page_tables@[target_pcid as int].unwrap().mapping_4k().dom().contains(va)]
-            #![trigger old(self).page_tables@[target_pcid as int].unwrap().mapping_4k()[va]]
-            old(self).page_tables@[target_pcid as int].unwrap().mapping_4k().dom().contains(va)
-                ==> old(self).page_tables@[target_pcid as int].unwrap().mapping_4k()[va].addr
-                != page_map_ptr);
-        assert(forall|va: VAddr|
-            #![trigger old(self).page_tables@[target_pcid as int].unwrap().mapping_2m().dom().contains(va)]
-            #![trigger old(self).page_tables@[target_pcid as int].unwrap().mapping_2m()[va]]
-            old(self).page_tables@[target_pcid as int].unwrap().mapping_2m().dom().contains(va)
-                ==> old(self).page_tables@[target_pcid as int].unwrap().mapping_2m()[va].addr
-                != page_map_ptr);
-        assert(forall|va: VAddr|
-            #![trigger old(self).page_tables@[target_pcid as int].unwrap().mapping_1g().dom().contains(va)]
-            #![trigger old(self).page_tables@[target_pcid as int].unwrap().mapping_1g()[va]]
-            old(self).page_tables@[target_pcid as int].unwrap().mapping_1g().dom().contains(va)
-                ==> old(self).page_tables@[target_pcid as int].unwrap().mapping_1g()[va].addr
-                != page_map_ptr);
-
-        assert(self.get_pagetable_by_pcid(target_pcid).is_Some());
-        assert(self.get_pagetable_by_pcid(target_pcid).unwrap().wf());
-        proof {
-            self.get_pagetable_by_pcid(target_pcid).unwrap().no_mapping_infer_not_mapped(
-                page_map_ptr,
-            );
-        }
         self.page_tables.pagetable_array_create_pagetable_l4_entry_t(
             target_pcid,
             target_l4i,
             page_map_ptr,
             Tracked(page_map_perm),
         );
-        proof {
-            self.page_table_pages@ = self.page_table_pages@.insert(page_map_ptr, target_pcid);
-        }
-        assert(self.wf()) by {
-            assert(self.pagetables_wf()) by {
-                assert(forall|pcid: Pcid|
-                    #![trigger self.page_tables@[pcid as int]]
-                    #![trigger self.get_free_pcids_as_set().contains(pcid)]
-                    0 <= pcid < PCID_MAX ==> self.page_tables@[pcid as int].is_Some() && (
-                    self.get_free_pcids_as_set().contains(pcid)
-                        ==> self.page_tables@[pcid as int].unwrap().is_empty()));
-            };
-            assert(self.iommutables_wf());
-            assert(self.pagetable_iommu_table_disjoint());
-            assert(self.root_table_wf());
-            assert(self.root_table_cache_wf());
-            assert(self.kernel_entries_wf());
-        };
     }
 
     pub fn create_iommu_table_l4_entry(
@@ -718,61 +671,12 @@ impl MemoryManager {
                 self,
             ).get_iommu_table_by_ioid(target_ioid).unwrap().kernel_entries,
     {
-        assert(old(self).get_iommu_table_mapping_by_ioid(target_ioid) =~= old(
-            self,
-        ).iommu_tables@[target_ioid as int].unwrap().mapping_4k());
-        assert(forall|va: VAddr|
-            #![trigger old(self).iommu_tables@[target_ioid as int].unwrap().mapping_4k().dom().contains(va)]
-            #![trigger old(self).iommu_tables@[target_ioid as int].unwrap().mapping_4k()[va]]
-            old(self).iommu_tables@[target_ioid as int].unwrap().mapping_4k().dom().contains(va)
-                ==> old(self).iommu_tables@[target_ioid as int].unwrap().mapping_4k()[va].addr
-                != page_map_ptr);
-        assert(forall|va: VAddr|
-            #![trigger old(self).iommu_tables@[target_ioid as int].unwrap().mapping_2m().dom().contains(va)]
-            #![trigger old(self).iommu_tables@[target_ioid as int].unwrap().mapping_2m()[va]]
-            old(self).iommu_tables@[target_ioid as int].unwrap().mapping_2m().dom().contains(va)
-                ==> old(self).iommu_tables@[target_ioid as int].unwrap().mapping_2m()[va].addr
-                != page_map_ptr);
-        assert(forall|va: VAddr|
-            #![trigger old(self).iommu_tables@[target_ioid as int].unwrap().mapping_1g().dom().contains(va)]
-            #![trigger old(self).iommu_tables@[target_ioid as int].unwrap().mapping_1g()[va]]
-            old(self).iommu_tables@[target_ioid as int].unwrap().mapping_1g().dom().contains(va)
-                ==> old(self).iommu_tables@[target_ioid as int].unwrap().mapping_1g()[va].addr
-                != page_map_ptr);
-
-        assert(self.get_iommu_table_by_ioid(target_ioid).is_Some());
-        assert(self.get_iommu_table_by_ioid(target_ioid).unwrap().wf());
-        proof {
-            self.get_iommu_table_by_ioid(target_ioid).unwrap().no_mapping_infer_not_mapped(
-                page_map_ptr,
-            );
-        }
         self.iommu_tables.iommu_table_array_create_iommu_table_l4_entry_t(
             target_ioid,
             target_l4i,
             page_map_ptr,
             Tracked(page_map_perm),
         );
-        proof {
-            self.iommu_table_pages@ = self.iommu_table_pages@.insert(page_map_ptr, target_ioid);
-        }
-        assert(self.wf()) by {
-            assert(self.iommutables_wf()) by {
-                assert(forall|ioid: IOid|
-                    #![trigger self.iommu_tables@[ioid as int]]
-                    #![trigger self.get_free_ioids_as_set().contains(ioid)]
-                    0 <= ioid < PCID_MAX ==> self.iommu_tables@[ioid as int].is_Some() && (
-                    self.get_free_ioids_as_set().contains(ioid)
-                        ==> self.iommu_tables@[ioid as int].unwrap().is_empty()));
-            };
-
-            assert(self.pagetables_wf());
-            assert(self.pagetable_iommu_table_disjoint());
-            assert(self.root_table_wf());
-            assert(self.root_table_cache_wf());
-            assert(self.kernel_entries_wf());
-            assert(self.no_memory_leak());
-        };
     }
 
     pub fn get_pagetable_l3_entry(
@@ -960,35 +864,6 @@ impl MemoryManager {
                 self,
             ).get_pagetable_by_pcid(target_pcid).unwrap().kernel_entries,
     {
-        assert(old(self).get_pagetable_mapping_by_pcid(target_pcid) =~= old(
-            self,
-        ).page_tables@[target_pcid as int].unwrap().mapping_4k());
-        assert(forall|va: VAddr|
-            #![trigger old(self).page_tables@[target_pcid as int].unwrap().mapping_4k().dom().contains(va)]
-            #![trigger old(self).page_tables@[target_pcid as int].unwrap().mapping_4k()[va]]
-            old(self).page_tables@[target_pcid as int].unwrap().mapping_4k().dom().contains(va)
-                ==> old(self).page_tables@[target_pcid as int].unwrap().mapping_4k()[va].addr
-                != page_map_ptr);
-        assert(forall|va: VAddr|
-            #![trigger old(self).page_tables@[target_pcid as int].unwrap().mapping_2m().dom().contains(va)]
-            #![trigger old(self).page_tables@[target_pcid as int].unwrap().mapping_2m()[va]]
-            old(self).page_tables@[target_pcid as int].unwrap().mapping_2m().dom().contains(va)
-                ==> old(self).page_tables@[target_pcid as int].unwrap().mapping_2m()[va].addr
-                != page_map_ptr);
-        assert(forall|va: VAddr|
-            #![trigger old(self).page_tables@[target_pcid as int].unwrap().mapping_1g().dom().contains(va)]
-            #![trigger old(self).page_tables@[target_pcid as int].unwrap().mapping_1g()[va]]
-            old(self).page_tables@[target_pcid as int].unwrap().mapping_1g().dom().contains(va)
-                ==> old(self).page_tables@[target_pcid as int].unwrap().mapping_1g()[va].addr
-                != page_map_ptr);
-
-        assert(self.get_pagetable_by_pcid(target_pcid).is_Some());
-        assert(self.get_pagetable_by_pcid(target_pcid).unwrap().wf());
-        proof {
-            self.get_pagetable_by_pcid(target_pcid).unwrap().no_mapping_infer_not_mapped(
-                page_map_ptr,
-            );
-        }
         self.page_tables.pagetable_array_create_pagetable_l3_entry_t(
             target_pcid,
             target_l4i,
@@ -997,17 +872,6 @@ impl MemoryManager {
             page_map_ptr,
             Tracked(page_map_perm),
         );
-        proof {
-            self.page_table_pages@ = self.page_table_pages@.insert(page_map_ptr, target_pcid);
-        }
-        assert(self.wf()) by {
-            assert(self.pagetables_wf());
-            assert(self.iommutables_wf());
-            assert(self.pagetable_iommu_table_disjoint());
-            assert(self.root_table_wf());
-            assert(self.root_table_cache_wf());
-            assert(self.kernel_entries_wf());
-        };
     }
 
     pub fn create_iommu_table_l3_entry(
@@ -1122,35 +986,6 @@ impl MemoryManager {
                 self,
             ).get_iommu_table_by_ioid(target_ioid).unwrap().kernel_entries,
     {
-        assert(old(self).get_iommu_table_mapping_by_ioid(target_ioid) =~= old(
-            self,
-        ).iommu_tables@[target_ioid as int].unwrap().mapping_4k());
-        assert(forall|va: VAddr|
-            #![trigger old(self).iommu_tables@[target_ioid as int].unwrap().mapping_4k().dom().contains(va)]
-            #![trigger old(self).iommu_tables@[target_ioid as int].unwrap().mapping_4k()[va]]
-            old(self).iommu_tables@[target_ioid as int].unwrap().mapping_4k().dom().contains(va)
-                ==> old(self).iommu_tables@[target_ioid as int].unwrap().mapping_4k()[va].addr
-                != page_map_ptr);
-        assert(forall|va: VAddr|
-            #![trigger old(self).iommu_tables@[target_ioid as int].unwrap().mapping_2m().dom().contains(va)]
-            #![trigger old(self).iommu_tables@[target_ioid as int].unwrap().mapping_2m()[va]]
-            old(self).iommu_tables@[target_ioid as int].unwrap().mapping_2m().dom().contains(va)
-                ==> old(self).iommu_tables@[target_ioid as int].unwrap().mapping_2m()[va].addr
-                != page_map_ptr);
-        assert(forall|va: VAddr|
-            #![trigger old(self).iommu_tables@[target_ioid as int].unwrap().mapping_1g().dom().contains(va)]
-            #![trigger old(self).iommu_tables@[target_ioid as int].unwrap().mapping_1g()[va]]
-            old(self).iommu_tables@[target_ioid as int].unwrap().mapping_1g().dom().contains(va)
-                ==> old(self).iommu_tables@[target_ioid as int].unwrap().mapping_1g()[va].addr
-                != page_map_ptr);
-
-        assert(self.get_iommu_table_by_ioid(target_ioid).is_Some());
-        assert(self.get_iommu_table_by_ioid(target_ioid).unwrap().wf());
-        proof {
-            self.get_iommu_table_by_ioid(target_ioid).unwrap().no_mapping_infer_not_mapped(
-                page_map_ptr,
-            );
-        }
         self.iommu_tables.iommu_table_array_create_iommu_table_l3_entry_t(
             target_ioid,
             target_l4i,
@@ -1159,17 +994,6 @@ impl MemoryManager {
             page_map_ptr,
             Tracked(page_map_perm),
         );
-        proof {
-            self.iommu_table_pages@ = self.iommu_table_pages@.insert(page_map_ptr, target_ioid);
-        }
-        assert(self.wf()) by {
-            assert(self.iommutables_wf());
-            assert(self.pagetables_wf());
-            assert(self.pagetable_iommu_table_disjoint());
-            assert(self.root_table_wf());
-            assert(self.root_table_cache_wf());
-            assert(self.kernel_entries_wf());
-        };
     }
 
     pub fn get_pagetable_l2_entry(
@@ -1496,35 +1320,6 @@ impl MemoryManager {
                 self,
             ).get_pagetable_by_pcid(target_pcid).unwrap().kernel_entries,
     {
-        assert(old(self).get_pagetable_mapping_by_pcid(target_pcid) =~= old(
-            self,
-        ).page_tables@[target_pcid as int].unwrap().mapping_4k());
-        assert(forall|va: VAddr|
-            #![trigger old(self).page_tables@[target_pcid as int].unwrap().mapping_4k().dom().contains(va)]
-            #![trigger old(self).page_tables@[target_pcid as int].unwrap().mapping_4k()[va]]
-            old(self).page_tables@[target_pcid as int].unwrap().mapping_4k().dom().contains(va)
-                ==> old(self).page_tables@[target_pcid as int].unwrap().mapping_4k()[va].addr
-                != page_map_ptr);
-        assert(forall|va: VAddr|
-            #![trigger old(self).page_tables@[target_pcid as int].unwrap().mapping_2m().dom().contains(va)]
-            #![trigger old(self).page_tables@[target_pcid as int].unwrap().mapping_2m()[va]]
-            old(self).page_tables@[target_pcid as int].unwrap().mapping_2m().dom().contains(va)
-                ==> old(self).page_tables@[target_pcid as int].unwrap().mapping_2m()[va].addr
-                != page_map_ptr);
-        assert(forall|va: VAddr|
-            #![trigger old(self).page_tables@[target_pcid as int].unwrap().mapping_1g().dom().contains(va)]
-            #![trigger old(self).page_tables@[target_pcid as int].unwrap().mapping_1g()[va]]
-            old(self).page_tables@[target_pcid as int].unwrap().mapping_1g().dom().contains(va)
-                ==> old(self).page_tables@[target_pcid as int].unwrap().mapping_1g()[va].addr
-                != page_map_ptr);
-
-        assert(self.get_pagetable_by_pcid(target_pcid).is_Some());
-        assert(self.get_pagetable_by_pcid(target_pcid).unwrap().wf());
-        proof {
-            self.get_pagetable_by_pcid(target_pcid).unwrap().no_mapping_infer_not_mapped(
-                page_map_ptr,
-            );
-        }
         self.page_tables.pagetable_array_create_pagetable_l2_entry_t(
             target_pcid,
             target_l4i,
@@ -1534,17 +1329,6 @@ impl MemoryManager {
             page_map_ptr,
             Tracked(page_map_perm),
         );
-        proof {
-            self.page_table_pages@ = self.page_table_pages@.insert(page_map_ptr, target_pcid);
-        }
-        assert(self.wf()) by {
-            assert(self.pagetables_wf());
-            assert(self.iommutables_wf());
-            assert(self.pagetable_iommu_table_disjoint());
-            assert(self.root_table_wf());
-            assert(self.root_table_cache_wf());
-            assert(self.kernel_entries_wf());
-        };
     }
 
     pub fn create_iommu_table_l2_entry(
@@ -1680,35 +1464,6 @@ impl MemoryManager {
                 self,
             ).get_iommu_table_by_ioid(target_ioid).unwrap().kernel_entries,
     {
-        assert(old(self).get_iommu_table_mapping_by_ioid(target_ioid) =~= old(
-            self,
-        ).iommu_tables@[target_ioid as int].unwrap().mapping_4k());
-        assert(forall|va: VAddr|
-            #![trigger old(self).iommu_tables@[target_ioid as int].unwrap().mapping_4k().dom().contains(va)]
-            #![trigger old(self).iommu_tables@[target_ioid as int].unwrap().mapping_4k()[va]]
-            old(self).iommu_tables@[target_ioid as int].unwrap().mapping_4k().dom().contains(va)
-                ==> old(self).iommu_tables@[target_ioid as int].unwrap().mapping_4k()[va].addr
-                != page_map_ptr);
-        assert(forall|va: VAddr|
-            #![trigger old(self).iommu_tables@[target_ioid as int].unwrap().mapping_2m().dom().contains(va)]
-            #![trigger old(self).iommu_tables@[target_ioid as int].unwrap().mapping_2m()[va]]
-            old(self).iommu_tables@[target_ioid as int].unwrap().mapping_2m().dom().contains(va)
-                ==> old(self).iommu_tables@[target_ioid as int].unwrap().mapping_2m()[va].addr
-                != page_map_ptr);
-        assert(forall|va: VAddr|
-            #![trigger old(self).iommu_tables@[target_ioid as int].unwrap().mapping_1g().dom().contains(va)]
-            #![trigger old(self).iommu_tables@[target_ioid as int].unwrap().mapping_1g()[va]]
-            old(self).iommu_tables@[target_ioid as int].unwrap().mapping_1g().dom().contains(va)
-                ==> old(self).iommu_tables@[target_ioid as int].unwrap().mapping_1g()[va].addr
-                != page_map_ptr);
-
-        assert(self.get_iommu_table_by_ioid(target_ioid).is_Some());
-        assert(self.get_iommu_table_by_ioid(target_ioid).unwrap().wf());
-        proof {
-            self.get_iommu_table_by_ioid(target_ioid).unwrap().no_mapping_infer_not_mapped(
-                page_map_ptr,
-            );
-        }
         self.iommu_tables.iommu_table_array_create_iommu_table_l2_entry_t(
             target_ioid,
             target_l4i,
@@ -1718,17 +1473,6 @@ impl MemoryManager {
             page_map_ptr,
             Tracked(page_map_perm),
         );
-        proof {
-            self.iommu_table_pages@ = self.iommu_table_pages@.insert(page_map_ptr, target_ioid);
-        }
-        assert(self.wf()) by {
-            assert(self.pagetables_wf());
-            assert(self.iommutables_wf());
-            assert(self.pagetable_iommu_table_disjoint());
-            assert(self.root_table_wf());
-            assert(self.root_table_cache_wf());
-            assert(self.kernel_entries_wf());
-        };
     }
 
     pub fn pagetable_map_4k_page(
@@ -2013,12 +1757,7 @@ impl MemoryManager {
             ) && self.get_pagetable_by_pcid(pcid).unwrap().mapping_4k()[va]
                 == page_entry_to_map_entry(&ret.unwrap()),
     {
-        proof {
-            va_lemma();
-        }
-        // proof{self.get_pagetable_by_pcid(pcid).unwrap().no_mapping_infer_no_reslove();}
         let (l4i, l3i, l2i, l1i) = va2index(va);
-        assert(spec_index2va((l4i, l3i, l2i, l1i)) == va);
         let l4_entry_op = self.get_pagetable_l4_entry(pcid, l4i);
         if l4_entry_op.is_none() {
             return None;
@@ -2051,12 +1790,8 @@ impl MemoryManager {
                 ioid,
             ).unwrap().mapping_4k()[va] == page_entry_to_map_entry(&ret.unwrap()),
     {
-        proof {
-            va_lemma();
-        }
         // proof{self.get_iommu_table_by_ioid(ioid).unwrap().no_mapping_infer_no_reslove();}
         let (l4i, l3i, l2i, l1i) = va2index(va);
-        assert(spec_index2va((l4i, l3i, l2i, l1i)) == va);
         let l4_entry_op = self.get_iommu_table_l4_entry(ioid, l4i);
         if l4_entry_op.is_none() {
             return None;
@@ -2239,31 +1974,6 @@ impl MemoryManager {
     {
         let new_pcid = *self.free_pcids.pop_unique();
         self.pcid_to_proc_ptr.set(new_pcid, Some(new_proc_ptr));
-        assert(self.pagetables_wf()) by {
-            seq_pop_unique_lemma::<Pcid>();
-            seq_update_lemma::<Option<PageTable>>();
-            assert(forall|pcid: Pcid|
-                pcid != new_pcid ==> old(self).get_free_pcids_as_set().contains(pcid)
-                    == self.get_free_pcids_as_set().contains(pcid));
-        };
-        assert(self.iommutables_wf());
-        assert(self.pagetable_iommu_table_disjoint());
-        assert(self.root_table_wf());
-        assert(self.root_table_cache_wf());
-        assert(self.kernel_entries_wf());
-        assert(self.pcid_to_proc_wf()) by {
-            set_lemma::<Pcid>();
-            seq_pop_unique_lemma::<Pcid>();
-            seq_update_lemma::<ProcPtr>();
-            //    assert(
-            //         forall|pcid:Pcid|
-            //         #![trigger self.pcid_active(pcid)]
-            //         #![trigger self.pcid_to_proc_ptr@[pcid as int]]
-            //         pcid != new_pcid ==>
-            //         self.pcid_active(pcid) == self.pcid_to_proc_ptr@[pcid as int].is_Some()
-            //    );
-        };
-        assert(self.ioid_to_proc_wf());
         new_pcid
     }
 
@@ -2386,31 +2096,6 @@ pub fn free_page_table(&mut self, proc_ptr: ProcPtr, pcid: Pcid)
     {
         let new_ioid = *self.free_ioids.pop_unique();
         self.ioid_to_proc_ptr.set(new_ioid, Some(new_proc_ptr));
-        assert(self.pagetables_wf());
-        assert(self.iommutables_wf()) by {
-            seq_pop_unique_lemma::<IOid>();
-            seq_update_lemma::<Option<PageTable>>();
-            assert(forall|ioid: IOid|
-                ioid != new_ioid ==> old(self).get_free_ioids_as_set().contains(ioid)
-                    == self.get_free_ioids_as_set().contains(ioid));
-        };
-        assert(self.pagetable_iommu_table_disjoint());
-        assert(self.root_table_wf());
-        assert(self.root_table_cache_wf());
-        assert(self.kernel_entries_wf());
-        assert(self.ioid_to_proc_wf()) by {
-            set_lemma::<IOid>();
-            seq_pop_unique_lemma::<IOid>();
-            seq_update_lemma::<ProcPtr>();
-            //    assert(
-            //         forall|pcid:Pcid|
-            //         #![trigger self.pcid_active(pcid)]
-            //         #![trigger self.pcid_to_proc_ptr@[pcid as int]]
-            //         pcid != new_pcid ==>
-            //         self.pcid_active(pcid) == self.pcid_to_proc_ptr@[pcid as int].is_Some()
-            //    );
-        };
-        assert(self.pcid_to_proc_wf());
         new_ioid
     }
 

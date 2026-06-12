@@ -38,23 +38,6 @@ pub fn page_map_set_kernel_entry_range(
             ),
 {
     for index in 0..KERNEL_MEM_END_L4INDEX
-        invariant
-            0 <= index <= KERNEL_MEM_END_L4INDEX,
-            kernel_entries.wf(),
-            kernel_entries@.len() == KERNEL_MEM_END_L4INDEX,
-            page_map_perm.addr() == page_map_ptr,
-            page_map_perm.is_init(),
-            page_map_perm.value().wf(),
-            forall|i: usize|
-                #![trigger page_map_perm.value()[i]]
-                KERNEL_MEM_END_L4INDEX <= i < 512 ==> page_map_perm.value()[i] =~= old(
-                    page_map_perm,
-                ).value()[i],
-            forall|i: usize|
-                #![trigger page_map_perm.value()[i]]
-                0 <= i < index ==> page_map_perm.value()[i] =~= usize2page_entry(
-                    kernel_entries@[i as int],
-                ),
     {
         page_map_set_no_requires(
             page_map_ptr,

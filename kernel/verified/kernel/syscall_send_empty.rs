@@ -48,10 +48,6 @@ impl Kernel {
         ensures
             self.wf(),
     {
-        proof {
-            self.proc_man.thread_inv();
-            self.proc_man.endpoint_inv();
-        }
         let sender_container_ptr = self.proc_man.get_thread(sender_thread_ptr).owning_container;
         let blocking_endpoint_ptr_op = self.proc_man.get_thread(
             sender_thread_ptr,
@@ -75,7 +71,6 @@ impl Kernel {
             && self.proc_man.get_endpoint(blocking_endpoint_ptr).queue.len() == 0 {
             return SyscallReturnStruct::NoSwitchNew(RetValueType::Error);
         }
-        assert(self.receiver_exist(sender_thread_ptr, blocking_endpoint_index));
 
         let receiver_thread_ptr = self.proc_man.get_endpoint(
             blocking_endpoint_ptr,
@@ -105,10 +100,6 @@ impl Kernel {
         ensures
             self.wf(),
     {
-        proof {
-            self.proc_man.thread_inv();
-            self.proc_man.endpoint_inv();
-        }
         let sender_container_ptr = self.proc_man.get_thread(sender_thread_ptr).owning_container;
         let blocking_endpoint_ptr_op = self.proc_man.get_thread(
             sender_thread_ptr,
@@ -127,7 +118,6 @@ impl Kernel {
                 IPCPayLoad::Empty,
                 pt_regs,
             );
-            assert(self.wf());
             return SyscallReturnStruct::NoNextThreadNew(RetValueType::Error);  //Come Back
         }
         if self.proc_man.get_endpoint(blocking_endpoint_ptr).queue_state.is_send()
@@ -144,10 +134,8 @@ impl Kernel {
                 EndpointState::SEND,
                 pt_regs,
             );
-            assert(self.wf());
             return SyscallReturnStruct::NoNextThreadNew(RetValueType::Error);  //Come Back
         }
-        assert(self.receiver_exist(sender_thread_ptr, blocking_endpoint_index));
 
         let receiver_thread_ptr = self.proc_man.get_endpoint(
             blocking_endpoint_ptr,

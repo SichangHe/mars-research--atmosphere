@@ -18,10 +18,6 @@ impl Kernel {
             0 <= blocking_endpoint_index < MAX_NUM_ENDPOINT_DESCRIPTORS,
         ensures
     {
-        proof {
-            self.proc_man.thread_inv();
-            self.proc_man.endpoint_inv();
-        }
 
         let blocking_endpoint_ptr_op = self.proc_man.get_thread(
             receiver_thread_ptr,
@@ -46,9 +42,6 @@ impl Kernel {
             && self.proc_man.get_endpoint(blocking_endpoint_ptr).queue.len() == 0 {
             return SyscallReturnStruct::NoSwitchNew(RetValueType::Error);
         }
-        // Make sure we can access sender from shared endpoint
-
-        assert(self.sender_exist(receiver_thread_ptr, blocking_endpoint_index));
 
         // checking sender thread payload well formed
         let sender_thread_ptr = self.proc_man.get_endpoint(blocking_endpoint_ptr).queue.get_head();
@@ -76,11 +69,7 @@ impl Kernel {
             old(self).get_thread(receiver_thread_ptr).state == ThreadState::RUNNING,
         ensures
     {
-        proof {
-            self.proc_man.thread_inv();
-            self.proc_man.endpoint_inv();
-        }
-
+    
         let blocking_endpoint_ptr_op = self.proc_man.get_thread(
             receiver_thread_ptr,
         ).endpoint_descriptors.get(blocking_endpoint_index);
@@ -88,6 +77,7 @@ impl Kernel {
         if blocking_endpoint_ptr_op.is_none() {
             return SyscallReturnStruct::NoSwitchNew(RetValueType::Error);
         }
+
         let blocking_endpoint_ptr = blocking_endpoint_ptr_op.unwrap();
         if self.proc_man.get_endpoint(blocking_endpoint_ptr).queue_state.is_receive()
             && self.proc_man.get_endpoint(blocking_endpoint_ptr).queue.len()
@@ -98,7 +88,6 @@ impl Kernel {
                 IPCPayLoad::Empty,
                 pt_regs,
             );
-            assert(self.wf());
             return SyscallReturnStruct::NoNextThreadNew(RetValueType::Error);
         }
         if self.proc_man.get_endpoint(blocking_endpoint_ptr).queue_state.is_receive()
@@ -116,12 +105,8 @@ impl Kernel {
                 EndpointState::RECEIVE,
                 pt_regs,
             );
-            assert(self.wf());
             return SyscallReturnStruct::NoNextThreadNew(RetValueType::Error);
         }
-        // Make sure we can access sender from shared endpoint
-
-        assert(self.sender_exist(receiver_thread_ptr, blocking_endpoint_index));
 
         // checking sender thread payload well formed
         let sender_thread_ptr = self.proc_man.get_endpoint(blocking_endpoint_ptr).queue.get_head();

@@ -25,13 +25,6 @@ impl <const N: usize> ArraySet<N> {
             set:Ghost(Set::<usize>::empty()),
         };
         for i in 0..N
-            invariant
-                0<=i<=N,
-                ret.data.wf(),
-                ret.len == 0,
-                ret.set@ == Set::<usize>::empty(),
-                forall|j:int|
-                    0<=j<i ==> ret.data@[j] == false,
         {
             ret.data.set(i,false);
         }
@@ -45,16 +38,9 @@ impl <const N: usize> ArraySet<N> {
             self.wf(),
             self@ == Set::<usize>::empty(),
     {
-            self.len = 0;
-            self.set = Ghost(Set::<usize>::empty());
+        self.len = 0;
+        self.set = Ghost(Set::<usize>::empty());
         for i in 0..N
-            invariant
-                0<=i<=N,
-                self.data.wf(),
-                self.len == 0,
-                self.set@ == Set::<usize>::empty(),
-                forall|j:int|
-                    0<=j<i ==> self.data@[j] == false,
         {
             self.data.set(i,false);
         }

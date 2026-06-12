@@ -81,17 +81,9 @@ impl<const N: usize> Array<u8, N> {
     {
         let mut i = 0;
         for i in 0..N
-            invariant
-                N <= usize::MAX,
-                0<=i<=N,
-                self.wf(),
-                forall|j:int| #![auto] 0<=j<i ==> self@[j] == 0,
         {
             let tmp:Ghost<Seq<u8>> = Ghost(self@);
-            assert(forall|j:int| #![auto] 0<=j<i ==> self@[j] == 0);
             self.set(i,0);
-            assert(self@ =~= tmp@.update(i as int,0));
-            assert(forall|j:int| #![auto] 0<=j<i ==> self@[j] == 0);
         }
     }
 }
@@ -108,17 +100,9 @@ impl<const N: usize> Array<usize, N> {
     {
         let mut i = 0;
         for i in 0..N
-            invariant
-                N <= usize::MAX,
-                0<=i<=N,
-                self.wf(),
-                forall|j:int| #![auto] 0<=j<i ==> self@[j] == 0,
         {
             let tmp:Ghost<Seq<usize>> = Ghost(self@);
-            assert(forall|j:int| #![auto] 0<=j<i ==> self@[j] == 0);
             self.set(i,0);
-            assert(self@ =~= tmp@.update(i as int,0));
-            assert(forall|j:int| #![auto] 0<=j<i ==> self@[j] == 0);
         }
     }
 }
@@ -135,17 +119,9 @@ impl<T: Copy, const N: usize> Array<Option<T>, N> {
     {
         let mut i = 0;
         for i in 0..N
-            invariant
-                N <= usize::MAX,
-                0<=i<=N,
-                self.wf(),
-                forall|j:int| #![auto] 0<=j<i ==> self@[j].is_None(),
         {
             let tmp:Ghost<Seq<Option<T>>> = Ghost(self@);
-            assert(forall|j:int| #![auto] 0<=j<i ==> self@[j].is_None());
             self.set(i,None);
-            assert(self@ =~= tmp@.update(i as int,None));
-            assert(forall|j:int| #![auto] 0<=j<i ==> self@[j].is_None());
         }
     }
 }

@@ -66,18 +66,9 @@ impl ProcessManager {
                 ==>
                 self.get_proc(p_ptr).uppertree_seq == old(self).get_proc(p_ptr).uppertree_seq,   
     {
-        broadcast use ProcessManager::reveal_process_manager_wf;
-
 
         let container_ptr = self.get_proc(proc_ptr).owning_container;
         let container_rev_ptr = self.get_proc(proc_ptr).rev_ptr;
-        proof {
-            proc_tree_wf_imply_childern_has_parent(
-                old(self).get_container(container_ptr).root_process.unwrap(),
-                old(self).get_container(container_ptr).owned_procs@.to_set(),
-                old(self).process_perms@,
-            );
-        }
         let parent_proc_ptr = self.get_proc(proc_ptr).parent.unwrap();
         let parent_rev_ptr = self.get_proc(proc_ptr).parent_rev_ptr.unwrap();
 
@@ -85,9 +76,6 @@ impl ProcessManager {
 
         let mut container_perm = Tracked(self.container_perms.borrow_mut().tracked_remove(container_ptr));
         container_remove_proc(container_ptr, &mut container_perm, container_rev_ptr, Ghost(proc_ptr));
-        proof{
-            self.container_perms.borrow_mut().tracked_insert(container_ptr, container_perm.get());
-        }
 
         proc_perms_remove_subtree_set(
             &mut self.process_perms,
@@ -99,132 +87,6 @@ impl ProcessManager {
 
         let mut parent_proc_perm = Tracked(self.process_perms.borrow_mut().tracked_remove(parent_proc_ptr));
         proc_remove_child(parent_proc_ptr, &mut parent_proc_perm, parent_rev_ptr, Ghost(proc_ptr));
-        proof{
-            self.process_perms.borrow_mut().tracked_insert(parent_proc_ptr, parent_proc_perm.get());
-        }
-
-        assert(self.container_perms_wf());
-        assert(self.container_tree_wf()) by {
-            container_no_change_to_tree_fields_imply_wf(
-                self.root_container,
-                old(self).container_perms@,
-                self.container_perms@,
-            );
-        };
-        assert(self.container_fields_wf());
-        assert(self.proc_perms_wf()) by {
-            seq_remove_lemma::<ProcPtr>();
-            seq_remove_lemma_2::<ProcPtr>();
-            old(self).process_perms@[parent_proc_ptr].value().children.unique_implys_no_duplicates();
-        };
-        assert(self.process_trees_wf()) by {
-            // seq_to_set_lemma::<ProcPtr>();
-            assert forall|c_ptr: ContainerPtr|
-                #![trigger self.container_dom().contains(c_ptr)]
-                #![trigger self.process_tree_wf(c_ptr)]
-                self.container_dom().contains(c_ptr) && self.get_container(
-                    c_ptr,
-                ).root_process.is_Some() implies 
-                self.process_tree_wf(c_ptr) by {
-                    if c_ptr != container_ptr {
-                    assert(forall|p_ptr: ProcPtr|
-                        #![auto]
-                        upper_tree_seq@.contains(p_ptr)
-                            ==> self.get_container(c_ptr).owned_procs@.to_set().contains(p_ptr)
-                            == false) by {
-                        old(self).wf_imply_container_owned_proc_disjoint();
-                        proc_tree_wf_imply_uppertree_subset_of_tree(
-                            old(self).get_container(container_ptr).root_process.unwrap(),
-                            old(self).get_container(container_ptr).owned_procs@.to_set(),
-                            old(self).process_perms@,
-                        );
-                    };
-                    process_no_change_to_tree_fields_imply_wf(
-                        self.get_container(c_ptr).root_process.unwrap(),
-                        self.get_container(c_ptr).owned_procs@.to_set(),
-                        old(self).process_perms@,
-                        self.process_perms@,
-                    );
-                    assert(self.process_tree_wf(c_ptr));
-                } else {
-                    seq_remove_lemma::<ProcPtr>();
-                    seq_remove_lemma_2::<ProcPtr>();
-                    old(self).container_perms@[container_ptr].value().owned_procs.unique_implys_no_duplicates();
-                    proc_tree_wf_imply_uppertree_subset_of_tree(
-                        old(self).get_container(container_ptr).root_process.unwrap(),
-                        old(self).get_container(container_ptr).owned_procs@.to_set(),
-                        old(self).process_perms@,
-                    );
-                    
-
-                    assert(old(self).get_proc(proc_ptr).uppertree_seq@.contains(proc_ptr) == false) by {
-                        proc_tree_wf_imply_uppertree_contains_no_self(
-                            old(self).get_container(container_ptr).root_process.unwrap(),
-                            old(self).get_container(container_ptr).owned_procs@.to_set(),
-                            old(self).process_perms@,
-                            proc_ptr,
-                        );
-                    }
-
-                    remove_proc_preserve_tree_inv(
-                        self.get_container(container_ptr).root_process.unwrap(),
-                        old(self).get_container(container_ptr).owned_procs@.to_set(),
-                        old(self).process_perms@,
-                        self.process_perms@,
-                        proc_ptr,
-                    );
-                    assert(self.get_container(container_ptr).owned_procs@.to_set() =~= old(
-                        self,
-                    ).get_container(container_ptr).owned_procs@.to_set().remove(proc_ptr));
-                    assert(self.process_tree_wf(container_ptr));
-                }
-                };
-        };
-        assert(self.process_fields_wf()) by {
-        };
-        assert(self.cpus_wf());
-        assert(self.container_cpu_wf());
-        assert(self.memory_disjoint());
-        assert(self.container_perms_wf());
-        assert(self.processes_container_wf()) by {
-            seq_remove_lemma::<ProcPtr>();
-            seq_remove_lemma_2::<ProcPtr>();
-            old(self).container_perms@[container_ptr].value().owned_procs.unique_implys_no_duplicates();
-        };
-        assert(self.threads_process_wf()) by {
-        };
-        assert(self.threads_perms_wf());
-        assert(self.endpoint_perms_wf());
-        assert(self.threads_endpoint_descriptors_wf());
-        assert(self.endpoints_queue_wf());
-        assert(self.endpoints_container_wf());
-        assert(self.schedulers_wf())by {
-        };
-        assert(self.pcid_ioid_wf());
-        assert(self.threads_cpu_wf());
-        assert(self.threads_container_wf());
-
-        assert(forall|p_ptr:ProcPtr|
-            #![auto]
-            old(self).get_proc(proc_ptr).uppertree_seq@.contains(p_ptr)
-            ==>
-            old(self).proc_dom().contains(p_ptr)
-        )by{
-            assert(old(self).get_container(container_ptr).owned_procs@.contains(proc_ptr));
-            proc_tree_wf_imply_childern_uppertree_specs(
-                old(self).get_container(container_ptr).root_process.unwrap(),
-                old(self).get_container(container_ptr).owned_procs@.to_set(),
-                old(self).process_perms@,
-            );
-        };
-        assert(old(self).get_proc(proc_ptr).uppertree_seq@.contains(proc_ptr) == false) by{
-            assert(old(self).get_container(container_ptr).owned_procs@.contains(proc_ptr));
-            proc_tree_wf_imply_childern_uppertree_specs(
-                old(self).get_container(container_ptr).root_process.unwrap(),
-                old(self).get_container(container_ptr).owned_procs@.to_set(),
-                old(self).process_perms@,
-            );
-        }
 
         proc_to_page(proc_ptr, proc_perm)
     }

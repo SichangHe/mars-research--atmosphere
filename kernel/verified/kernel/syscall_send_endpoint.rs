@@ -258,10 +258,6 @@ impl Kernel {
             ),
             self.wf(),
     {
-        proof {
-            self.proc_man.thread_inv();
-            self.proc_man.endpoint_inv();
-        }
         let sender_container_ptr = self.proc_man.get_thread(sender_thread_ptr).owning_container;
         let blocking_endpoint_ptr_op = self.proc_man.get_thread(sender_thread_ptr).endpoint_descriptors.get(blocking_endpoint_index);
         let payload_endpoint_ptr_op = self.proc_man.get_thread(sender_thread_ptr).endpoint_descriptors.get(sender_endpoint_payload);
@@ -279,7 +275,6 @@ impl Kernel {
                 blocking_endpoint_index,
                 IPCPayLoad::Endpoint { endpoint_index: sender_endpoint_payload },
             );
-            assert(self.wf());
             return SyscallReturnStruct::NoSwitchNew(RetValueType::Error);
         }
         if self.proc_man.get_endpoint(blocking_endpoint_ptr).queue_state.is_send()
@@ -297,10 +292,8 @@ impl Kernel {
                 IPCPayLoad::Endpoint { endpoint_index: sender_endpoint_payload },
                 EndpointState::SEND,
             );
-            assert(self.wf());
             return SyscallReturnStruct::NoSwitchNew(RetValueType::Error);
         }
-        assert(self.receiver_exist(sender_thread_ptr, blocking_endpoint_index));
 
         let receiver_thread_ptr = self.proc_man.get_endpoint(blocking_endpoint_ptr).queue.get_head();
         let receiver_container_ptr = self.proc_man.get_thread(receiver_thread_ptr).owning_container;
@@ -336,26 +329,12 @@ impl Kernel {
         
         let payload_endpoint_container_ptr = self.proc_man.get_endpoint(payload_endpoint_ptr).owning_container;
 
-        assume(false); //@Xiangdong finish refactoring
-
         if self.proc_man.container_check_is_ancestor(payload_endpoint_container_ptr, receiver_container_ptr) == false 
             && payload_endpoint_container_ptr != receiver_container_ptr {
             return SyscallReturnStruct::NoSwitchNew(RetValueType::Error);
         }
 
         self.proc_man.schedule_blocked_thread(blocking_endpoint_ptr);
-        assert(forall|t_ptr: ThreadPtr|
-            #![trigger old(self).get_thread(t_ptr)]
-            old(self).thread_dom().contains(t_ptr) ==> old(self).get_thread(
-                t_ptr,
-            ).endpoint_descriptors =~= self.get_thread(t_ptr).endpoint_descriptors);
-        assert(forall|e_ptr: EndpointPtr|
-            #![trigger self.get_endpoint(e_ptr)]
-            self.endpoint_dom().contains(e_ptr) ==> old(self).get_endpoint(e_ptr).queue_state
-                =~= self.get_endpoint(e_ptr).queue_state);
-        assert(blocking_endpoint_ptr != payload_endpoint_ptr ==> self.get_endpoint(
-            payload_endpoint_ptr,
-        ).queue =~= old(self).get_endpoint(payload_endpoint_ptr).queue);
 
         self.proc_man.pass_endpoint(
             sender_thread_ptr,
@@ -364,15 +343,6 @@ impl Kernel {
             receiver_endpoint_payload,
         );
 
-        assert(old(self).get_thread(
-            sender_thread_ptr,
-        ).endpoint_descriptors@[sender_endpoint_payload as int].unwrap() == payload_endpoint_ptr);
-        assert(self.get_thread(
-            sender_thread_ptr,
-        ).endpoint_descriptors@[sender_endpoint_payload as int].unwrap() == payload_endpoint_ptr);
-        assert(self.get_endpoint(payload_endpoint_ptr).queue_state == old(self).get_endpoint(
-            payload_endpoint_ptr,
-        ).queue_state);
         return SyscallReturnStruct::NoSwitchNew(RetValueType::Else);
     }
 }

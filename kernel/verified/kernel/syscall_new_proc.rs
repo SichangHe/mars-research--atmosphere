@@ -214,18 +214,9 @@ impl Kernel {
                 ret,
             ),
     {
-        proof {
-            seq_push_lemma::<usize>();
-        }
         let proc_ptr = self.proc_man.get_thread(thread_ptr).owning_proc;
         let pcid = self.proc_man.get_proc(proc_ptr).pcid;
         let container_ptr = self.proc_man.get_thread(thread_ptr).owning_container;
-
-        proof {
-            self.proc_man.thread_inv();
-            self.proc_man.process_inv();
-            assert(self.proc_man.get_proc(proc_ptr).owning_container == container_ptr);
-        }
 
         if self.proc_man.get_proc(proc_ptr).children.len() >= PROC_CHILD_LIST_LEN {
             return SyscallReturnStruct::NoSwitchNew(RetValueType::Error);
@@ -263,17 +254,11 @@ impl Kernel {
         if self.check_address_space_va_range_shareable(proc_ptr, &va_range) == false {
             return SyscallReturnStruct::NoSwitchNew(RetValueType::Error);
         }
-        // let (page_ptr_1,mut page_perm_1) = self.page_alloc.alloc_page_4k();
 
         let (page_ptr_2, page_perm_2) = self.page_alloc.alloc_page_4k();
         let (page_ptr_3, page_perm_3) = self.page_alloc.alloc_page_4k();
 
-        // assert(page_ptr_1 != page_ptr_2);
-        // assert(page_ptr_1 != page_ptr_3);
-        // assert(page_ptr_2 != page_ptr_3);
-        // let (page_map_ptr, mut page_map_perm) = page_perm_to_page_map(page_ptr_1,page_perm_1);
         let new_pcid = self.mem_man.alloc_page_table(page_ptr_2);
-        assert(self.proc_man == old(self).proc_man);
         self.proc_man.new_proc_with_endpoint(
             thread_ptr,
             endpoint_index,
@@ -284,23 +269,6 @@ impl Kernel {
             page_perm_3,
             new_pcid,
         );
-
-        assert(self.mem_man.wf());
-        assert(self.page_alloc.wf());
-        assert(self.proc_man.wf());
-        assert(self.memory_wf()) by {
-            assert(self.mem_man.page_closure().disjoint(self.proc_man.page_closure()));
-            assert(self.mem_man.page_closure() + self.proc_man.page_closure()
-                == self.page_alloc.allocated_pages_4k());
-            assert(self.page_alloc.mapped_pages_2m() =~= Set::empty());
-            assert(self.page_alloc.mapped_pages_1g() =~= Set::empty());
-            assert(self.page_alloc.allocated_pages_2m() =~= Set::empty());
-            assert(self.page_alloc.allocated_pages_1g() =~= Set::empty());
-            assert(self.page_alloc.container_map_4k@.dom() =~= self.proc_man.container_dom());
-        };
-        assert(self.mapping_wf());
-        assert(self.pcid_ioid_wf());
-        assert(self.page_mapping_wf());
 
         self.range_create_and_share_mapping(proc_ptr, &va_range, page_ptr_2, &va_range);
 

@@ -1083,19 +1083,6 @@ impl PageTable {
                     self.l3_tables@[p].value()[i].addr,
                 ),
     {
-        assert(forall|p: PageMapPtr, i: L3Index|
-                #![trigger self.l3_tables@[p].value()[i].addr]
-                self.l3_tables@.dom().contains(p) && 0 <= i < 512
-                    && self.l3_tables@[p].value()[i].perm.present
-                    && self.l3_tables@[p].value()[i].perm.ps ==> 
-                    self.spec_resolve_mapping_1g_l3(self.l3_rev_map@[p], i).is_Some()
-                    &&
-                    self.spec_resolve_mapping_1g_l3(self.l3_rev_map@[p], i).unwrap().addr == self.l3_tables@[p].value()[i].addr
-                    &&
-                    self.mapping_1g@.dom().contains(spec_index2va((self.l3_rev_map@[p], i, 0, 0)))
-                    &&
-                    self.mapping_1g()[spec_index2va((self.l3_rev_map@[p], i, 0, 0))].addr == self.l3_tables@[p].value()[i].addr
-        );
     }
 
     pub proof fn internal_resolve_disjoint(&self)

@@ -18,13 +18,6 @@ impl Kernel {
         ensures
             self.wf(),
     {
-        proof {
-            self.proc_man.thread_inv();
-            self.proc_man.endpoint_inv();
-            self.proc_man.container_inv();
-            self.proc_man.cpu_inv();
-        }
-
         let container_ptr = self.proc_man.cpu_list.get(cpu_id).owning_container;
 
         if self.proc_man.cpu_list.get(cpu_id).active == false {

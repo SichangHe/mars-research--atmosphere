@@ -259,11 +259,6 @@ impl Kernel {
             ),
             self.wf(),
     {
-        proof {
-            self.proc_man.thread_inv();
-            self.proc_man.endpoint_inv();
-        }
-
         // Check shared endpoint
         let blocking_endpoint_ptr_op = self.proc_man.get_thread(receiver_thread_ptr).endpoint_descriptors.get(blocking_endpoint_index);
 
@@ -281,7 +276,6 @@ impl Kernel {
                 blocking_endpoint_index,
                 IPCPayLoad::Endpoint { endpoint_index: receiver_endpoint_payload },
             );
-            assert(self.wf());
             return SyscallReturnStruct::NoSwitchNew(RetValueType::Error);
         }
         if self.proc_man.get_endpoint(blocking_endpoint_ptr).queue_state.is_receive()
@@ -299,12 +293,8 @@ impl Kernel {
                 IPCPayLoad::Endpoint { endpoint_index: receiver_endpoint_payload },
                 EndpointState::RECEIVE,
             );
-            assert(self.wf());
             return SyscallReturnStruct::NoSwitchNew(RetValueType::Error);
         }
-        // Make sure we can access sender from shared endpoint
-
-        assert(self.sender_exist(receiver_thread_ptr, blocking_endpoint_index));
 
         // checking sender thread payload well formed
         let sender_thread_ptr = self.proc_man.get_endpoint(blocking_endpoint_ptr).queue.get_head();
@@ -356,15 +346,6 @@ impl Kernel {
         }
 
         self.proc_man.schedule_blocked_thread(blocking_endpoint_ptr);
-        assert(forall|t_ptr: ThreadPtr|
-            #![trigger old(self).get_thread(t_ptr)]
-            old(self).thread_dom().contains(t_ptr) ==> old(self).get_thread(
-                t_ptr,
-            ).endpoint_descriptors =~= self.get_thread(t_ptr).endpoint_descriptors);
-        assert(forall|e_ptr: EndpointPtr|
-            #![trigger self.get_endpoint(e_ptr)]
-            self.endpoint_dom().contains(e_ptr) ==> old(self).get_endpoint(e_ptr).queue_state
-                =~= self.get_endpoint(e_ptr).queue_state);
 
         self.proc_man.pass_endpoint(
             sender_thread_ptr,
