@@ -38,6 +38,13 @@ impl Kernel {
             return SyscallReturnStruct::NoSwitchNew(RetValueType::Error);
         }
         let ioid = ioid_op.unwrap();
+        proof {
+            self.proc_man.thread_inv();
+            self.proc_man.process_inv();
+        }
+        assert(self.page_alloc.free_pages_4k.len() >= va_range.len * 4) by {
+            self.fold_mem_4k_lemma();
+        }
 
         if self.proc_man.get_container(container_ptr).quota.mem_4k < va_range.len * 4 {
             return SyscallReturnStruct::NoSwitchNew(RetValueType::ErrorNoQuota);
