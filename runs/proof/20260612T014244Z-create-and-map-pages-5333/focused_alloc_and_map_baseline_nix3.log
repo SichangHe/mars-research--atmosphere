@@ -1,0 +1,3 @@
+note: verifying module kernel::create_and_map_pages (selected functions)
+
+verification results:: 1 verified, 0 errors (partial verification with `--verify-*`)

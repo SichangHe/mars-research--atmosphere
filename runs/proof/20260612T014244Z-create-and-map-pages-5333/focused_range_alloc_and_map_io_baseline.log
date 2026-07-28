@@ -1,0 +1,6 @@
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+note: verifying module kernel::create_and_map_pages (selected functions)
+
+verification results:: 2 verified, 0 errors (partial verification with `--verify-*`)
